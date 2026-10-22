@@ -33,10 +33,10 @@ public static class SeedData
 
         // ---------- Categories ---------
         mb.Entity<Category>().HasData(
-            new Category { CategoryId = CatSang,   CategoryName = "Ăn Sáng & Món Nhanh", MascotName = "Bé Gái Khăn Cam",     ThemeColor = "#F97316", DisplayOrder = 1 },
-            new Category { CategoryId = CatChinh,  CategoryName = "Món Chính & Súp Hầm", MascotName = "Bé Trai Tạp Dề Vàng", ThemeColor = "#F59E0B", DisplayOrder = 2 },
-            new Category { CategoryId = CatBanh,   CategoryName = "Bánh & Tráng Miệng",  MascotName = "Bé Gái Khăn Hồng",    ThemeColor = "#EC4899", DisplayOrder = 3 },
-            new Category { CategoryId = CatHealth, CategoryName = "Healthy & Rau Củ",    MascotName = "Bé Trai Khăn Xanh",   ThemeColor = "#22C55E", DisplayOrder = 4 }
+            new Category { CategoryId = CatSang,   CategoryName = "Ăn Sáng & Món Nhanh",    ThemeColor = "#F97316", DisplayOrder = 1 },
+            new Category { CategoryId = CatChinh,  CategoryName = "Món Chính & Súp Hầm",    ThemeColor = "#F59E0B", DisplayOrder = 2 },
+            new Category { CategoryId = CatBanh,   CategoryName = "Bánh & Tráng Miệng",     ThemeColor = "#EC4899", DisplayOrder = 3 },
+            new Category { CategoryId = CatHealth, CategoryName = "Healthy & Rau Củ",       ThemeColor = "#22C55E", DisplayOrder = 4 }
         );
 
         // ---------- Recipes ----------

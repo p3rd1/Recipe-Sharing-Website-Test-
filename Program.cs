@@ -17,6 +17,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 
+app.MapGet("/", () => Results.Redirect("/demo/index.html"));
+
 app.MapGet("/api/recipes", async (CookingBabyDbContext db) =>
     await db.Recipes
         .AsNoTracking()
@@ -29,7 +31,6 @@ app.MapGet("/api/recipes", async (CookingBabyDbContext db) =>
             r.CookTime,
             r.ImageUrl,
             Category = r.Category.CategoryName,
-            Mascot = r.Category.MascotName,
             Author = r.Author.DisplayName,
             AvgRating = r.Ratings.Average(x => (double?)x.Stars),
             RatingCount = r.Ratings.Count(),
@@ -38,12 +39,5 @@ app.MapGet("/api/recipes", async (CookingBabyDbContext db) =>
         .OrderByDescending(x => x.AvgRating)
         .ThenByDescending(x => x.RatingCount)
         .ToListAsync());
-        using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<CookingBabyDbContext>();
-    
-    context.Database.Migrate(); 
-}
 
 app.Run();

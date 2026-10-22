@@ -37,7 +37,7 @@ public class Category
 {
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;  // "Món Chính & Súp Hầm"
-    public string MascotName { get; set; } = string.Empty;    // "Bé Trai Tạp Dề Vàng"
+  
     public string? ThemeColor { get; set; }                   // "#F59E0B"
     public byte DisplayOrder { get; set; }
 

@@ -42,7 +42,6 @@ public class CookingBabyDbContext : DbContext
         mb.Entity<Category>(e =>
         {
             e.Property(x => x.CategoryName).IsRequired().HasMaxLength(100);
-            e.Property(x => x.MascotName).IsRequired().HasMaxLength(100);
             e.Property(x => x.ThemeColor).HasColumnType("char(7)");
             e.HasIndex(x => x.CategoryName).IsUnique();
         });
