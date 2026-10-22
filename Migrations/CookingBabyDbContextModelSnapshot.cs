@@ -38,11 +38,6 @@ namespace CookingBaby.Migrations
                     b.Property<byte>("DisplayOrder")
                         .HasColumnType("tinyint");
 
-                    b.Property<string>("MascotName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("ThemeColor")
                         .HasColumnType("char(7)");
 
@@ -59,7 +54,6 @@ namespace CookingBaby.Migrations
                             CategoryId = 1,
                             CategoryName = "Ăn Sáng & Món Nhanh",
                             DisplayOrder = (byte)1,
-                            MascotName = "Bé Gái Khăn Cam",
                             ThemeColor = "#F97316"
                         },
                         new
@@ -67,7 +61,6 @@ namespace CookingBaby.Migrations
                             CategoryId = 2,
                             CategoryName = "Món Chính & Súp Hầm",
                             DisplayOrder = (byte)2,
-                            MascotName = "Bé Trai Tạp Dề Vàng",
                             ThemeColor = "#F59E0B"
                         },
                         new
@@ -75,7 +68,6 @@ namespace CookingBaby.Migrations
                             CategoryId = 3,
                             CategoryName = "Bánh & Tráng Miệng",
                             DisplayOrder = (byte)3,
-                            MascotName = "Bé Gái Khăn Hồng",
                             ThemeColor = "#EC4899"
                         },
                         new
@@ -83,7 +75,6 @@ namespace CookingBaby.Migrations
                             CategoryId = 4,
                             CategoryName = "Healthy & Rau Củ",
                             DisplayOrder = (byte)4,
-                            MascotName = "Bé Trai Khăn Xanh",
                             ThemeColor = "#22C55E"
                         });
                 });
