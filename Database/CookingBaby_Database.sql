@@ -6,15 +6,41 @@ GO
 USE CookingBabyDB;
 GO
 
--- 1. Xem danh sách UserId để biết tài khoản nào là Admin, tài khoản nào là Siêu đầu bếp nhí
+UPDATE dbo.Recipes
+SET AuthorId = 1;
+SELECT RecipeId, Title, AuthorId FROM dbo.Recipes;
+
+-- 1. Tìm UserId của sieudaubepnhi
+DECLARE @ChefId INT;
+SELECT @ChefId = UserId FROM dbo.Users WHERE Username = 'sieudaubepnhi';
+
+-- 2. Nếu tìm thấy, cập nhật tác giả của các món sang sieudaubepnhi
+IF @ChefId IS NOT NULL
+BEGIN
+    UPDATE dbo.Recipes 
+    SET AuthorId = @ChefId;
+    
+    PRINT N'Đã cập nhật tác giả sang Siêu đầu bếp nhí!';
+END
+ELSE
+BEGIN
+    -- Nếu chưa có tài khoản sieudaubepnhi thì đổi tên tài khoản 1 thành Siêu đầu bếp nhí
+    UPDATE dbo.Users 
+    SET Username = 'sieudaubepnhi' 
+    WHERE UserId = 1;
+    
+    PRINT N'Đã đổi tên User 1 thành sieudaubepnhi!';
+END
+
+-- Xem danh sách UserId để biết tài khoản nào là Admin, tài khoản nào là Siêu đầu bếp nhí
 SELECT UserId, Username, DisplayName FROM dbo.Users;
 
--- 2. Cập nhật: Món tôm thuộc về Siêu đầu bếp nhí
+-- Cập nhật: Món tôm thuộc về Siêu đầu bếp nhí
 UPDATE dbo.Recipes 
 SET AuthorId = (SELECT UserId FROM dbo.Users WHERE Username = 'sieudaubepnhi')
 WHERE Title LIKE N'%Tôm%';
 
--- 3. Cập nhật: Món súp và bánh kếp thuộc về Quản trị viên
+-- Cập nhật: Món súp và bánh kếp thuộc về Quản trị viên
 UPDATE dbo.Recipes 
 SET AuthorId = (SELECT UserId FROM dbo.Users WHERE Username = 'admin')
 WHERE Title LIKE N'%Súp%' OR Title LIKE N'%Pancake%' OR Title LIKE N'%Bánh Kếp%';
@@ -427,3 +453,72 @@ SELECT * FROM dbo.vw_AdminStatusCounts;
 SELECT RecipeId, Title, CategoryName, AuthorName, AvgRating, RatingCount, Status
 FROM dbo.vw_RecipeCards ORDER BY CreatedAt;
 GO
+
+-- 6 Test Submit
+SELECT DB_NAME() AS CurrentDatabase;
+SELECT OBJECT_ID('dbo.sp_SubmitReview') AS ProcedureId;
+SELECT *
+FROM dbo.Users
+WHERE UserId = 1;
+SELECT
+    RecipeId,
+    Title,
+    Status
+FROM dbo.Recipes;
+SELECT *
+FROM dbo.vw_RecipeReviews
+WHERE RecipeId = 1
+ORDER BY CreatedAt DESC;
+
+-- Lấy đúng UserId theo từng Username
+DECLARE @owner INT = (SELECT UserId FROM dbo.Users WHERE Username = N'sieudaubepnhi');
+DECLARE @binh  INT = (SELECT UserId FROM dbo.Users WHERE Username = N'thanhbinh');
+DECLARE @nhu   INT = (SELECT UserId FROM dbo.Users WHERE Username = N'quynhnhu');
+
+-- Gán đúng tác giả từng món theo kịch bản mẫu
+-- Salad ức gà áp chảo -> Thanh Bình
+UPDATE dbo.Recipes 
+SET AuthorId = @binh 
+WHERE Title LIKE N'%Salad%Ức Gà%';
+
+-- Trứng chần nấm đùi gà -> Quỳnh Như
+UPDATE dbo.Recipes 
+SET AuthorId = @nhu 
+WHERE Title LIKE N'%Trứng Chần%';
+
+-- Súp bí đỏ, Bánh kếp (pancake) và Tôm xào cà chua -> Siêu đầu bếp nhí
+UPDATE dbo.Recipes 
+SET AuthorId = @owner 
+WHERE Title LIKE N'%Súp Bí Đỏ%' 
+   OR Title LIKE N'%Bánh Kếp%' 
+   OR Title LIKE N'%Pancake%' 
+   OR Title LIKE N'%Tôm%';
+
+-- Kiểm tra lại kết quả phân bổ tác giả
+SELECT r.RecipeId, r.Title, u.Username, u.DisplayName AS AuthorName
+FROM dbo.Recipes r
+JOIN dbo.Users u ON u.UserId = r.AuthorId;
+GO
+
+-- Lấy đúng UserId của Siêu đầu bếp nhí
+DECLARE @OwnerId INT = (SELECT UserId FROM dbo.Users WHERE Username = N'sieudaubepnhi');
+
+-- Cập nhật món Súp Bí Đỏ và Bánh Kếp về cho Siêu đầu bếp nhí
+UPDATE dbo.Recipes 
+SET AuthorId = @OwnerId 
+WHERE Title LIKE N'%Súp Bí Đỏ%' 
+   OR Title LIKE N'%Bánh Kếp%' 
+   OR Title LIKE N'%Pancake%';
+
+-- Cập nhật luôn lại tên ảnh chuẩn để không bị hiện chữ 'Mon An' màu xám
+UPDATE dbo.Recipes SET ImageUrl = N'supbido.jpg' WHERE Title LIKE N'%Súp Bí Đỏ%';
+UPDATE dbo.Recipes SET ImageUrl = N'pancake.jpg' WHERE Title LIKE N'%Bánh Kếp%' OR Title LIKE N'%Pancake%';
+UPDATE dbo.Recipes SET ImageUrl = N'tomxaotrungcachua.jpg' WHERE Title LIKE N'%Tôm%';
+
+-- Kiểm tra lại danh sách món và tác giả
+SELECT r.RecipeId, r.Title, r.ImageUrl, u.DisplayName AS AuthorName
+FROM dbo.Recipes r
+JOIN dbo.Users u ON u.UserId = r.AuthorId;
+GO
+
+SELECT RecipeId, Title, AuthorId, AuthorName FROM dbo.vw_RecipeCards;
