@@ -5,10 +5,6 @@ IF DB_ID(N'CookingBabyDB') IS NULL
 GO
 USE CookingBabyDB;
 GO
-
-/* =====================================================================
-   1. XÓA BẢNG CŨ (THEO ĐÚNG THỨ TỰ PHỤ THUỘC KHÓA NGOẠI)
-   ===================================================================== */
 DROP TABLE IF EXISTS dbo.SavedRecipes;
 DROP TABLE IF EXISTS dbo.Comments;
 DROP TABLE IF EXISTS dbo.Ratings;
@@ -18,12 +14,6 @@ DROP TABLE IF EXISTS dbo.Recipes;
 DROP TABLE IF EXISTS dbo.Categories;
 DROP TABLE IF EXISTS dbo.Users;
 GO
-
-/* =====================================================================
-   2. TẠO CÁC BẢNG DỮ LIỆU
-   ===================================================================== */
-
--- Users
 CREATE TABLE dbo.Users (
     UserId        INT IDENTITY(1,1) NOT NULL,
     Username      NVARCHAR(50)  NOT NULL,
@@ -39,8 +29,6 @@ CREATE TABLE dbo.Users (
     CONSTRAINT CK_Users_Role     CHECK (Role IN (N'User', N'Admin'))
 );
 GO
-
--- Categories
 CREATE TABLE dbo.Categories (
     CategoryId    INT IDENTITY(1,1) NOT NULL,
     CategoryName  NVARCHAR(100) NOT NULL,             
@@ -50,8 +38,6 @@ CREATE TABLE dbo.Categories (
     CONSTRAINT UQ_Categories_Name UNIQUE (CategoryName)
 );
 GO
-
--- Recipes
 CREATE TABLE dbo.Recipes (
     RecipeId     INT IDENTITY(1,1) NOT NULL,
     Title        NVARCHAR(200) NOT NULL,          
@@ -75,8 +61,6 @@ CREATE TABLE dbo.Recipes (
 CREATE INDEX IX_Recipes_Status_Category ON dbo.Recipes (Status, CategoryId) INCLUDE (AuthorId, CookTime);
 CREATE INDEX IX_Recipes_Author_Status   ON dbo.Recipes (AuthorId, Status);
 GO
-
--- RecipeIngredients
 CREATE TABLE dbo.RecipeIngredients (
     IngredientId    INT IDENTITY(1,1) NOT NULL,
     RecipeId        INT           NOT NULL,
@@ -88,8 +72,6 @@ CREATE TABLE dbo.RecipeIngredients (
 );
 CREATE INDEX IX_RecipeIngredients_Name ON dbo.RecipeIngredients (IngredientName) INCLUDE (RecipeId);
 GO
-
--- RecipeSteps
 CREATE TABLE dbo.RecipeSteps (
     StepId       INT IDENTITY(1,1) NOT NULL,
     RecipeId     INT            NOT NULL,
@@ -101,8 +83,6 @@ CREATE TABLE dbo.RecipeSteps (
     CONSTRAINT CK_RecipeSteps_Number CHECK (StepNumber > 0)
 );
 GO
-
--- Ratings
 CREATE TABLE dbo.Ratings (
     RatingId   INT IDENTITY(1,1) NOT NULL,
     RecipeId   INT          NOT NULL,
@@ -116,8 +96,6 @@ CREATE TABLE dbo.Ratings (
     CONSTRAINT CK_Ratings_Stars  CHECK (Stars BETWEEN 1 AND 5)
 );
 GO
-
--- Comments
 CREATE TABLE dbo.Comments (
     CommentId  INT IDENTITY(1,1) NOT NULL,
     RecipeId   INT            NOT NULL,
@@ -130,8 +108,6 @@ CREATE TABLE dbo.Comments (
 );
 CREATE INDEX IX_Comments_Recipe ON dbo.Comments (RecipeId, CreatedAt DESC);
 GO
-
--- SavedRecipes
 CREATE TABLE dbo.SavedRecipes (
     UserId    INT          NOT NULL,
     RecipeId  INT          NOT NULL,
@@ -141,11 +117,6 @@ CREATE TABLE dbo.SavedRecipes (
     CONSTRAINT FK_SavedRecipes_Recipe FOREIGN KEY (RecipeId) REFERENCES dbo.Recipes(RecipeId) ON DELETE CASCADE
 );
 GO
-
-/* =====================================================================
-   3. TẠO CÁC VIEWS
-   ===================================================================== */
-
 CREATE OR ALTER VIEW dbo.vw_RecipeCards
 AS
 SELECT  r.RecipeId, r.Title, r.Description, r.CookTime, r.ImageUrl, r.Status, r.CreatedAt,
@@ -168,7 +139,6 @@ OUTER APPLY (
     FROM dbo.RecipeIngredients WHERE RecipeId = r.RecipeId
 ) ing;
 GO
-
 CREATE OR ALTER VIEW dbo.vw_RecipeReviews
 AS
 SELECT  cm.CommentId, cm.RecipeId, cm.UserId,
@@ -179,7 +149,6 @@ FROM dbo.Comments cm
 JOIN dbo.Users u ON u.UserId = cm.UserId
 LEFT JOIN dbo.Ratings rt ON rt.RecipeId = cm.RecipeId AND rt.UserId = cm.UserId;
 GO
-
 CREATE OR ALTER VIEW dbo.vw_AdminStatusCounts
 AS
 SELECT  COUNT(CASE WHEN Status = N'Đã duyệt'  THEN 1 END) AS DangHienThi,
@@ -187,11 +156,6 @@ SELECT  COUNT(CASE WHEN Status = N'Đã duyệt'  THEN 1 END) AS DangHienThi,
         COUNT(CASE WHEN Status = N'Đã ẩn'     THEN 1 END) AS DaAn
 FROM dbo.Recipes;
 GO
-
-/* =====================================================================
-   4. TẠO CÁC STORED PROCEDURES
-   ===================================================================== */
-
 CREATE OR ALTER PROCEDURE dbo.sp_ApproveRecipe
     @RecipeId INT, @AdminId INT
 AS
@@ -224,7 +188,6 @@ BEGIN
     IF @@ROWCOUNT = 0 THROW 50002, N'Không tìm thấy công thức.', 1;
 END
 GO
-
 CREATE OR ALTER PROCEDURE dbo.sp_SubmitReview
     @RecipeId INT, @UserId INT, @Stars TINYINT, @Content NVARCHAR(1000) = NULL
 AS
@@ -247,7 +210,6 @@ BEGIN
     COMMIT;
 END
 GO
-
 CREATE OR ALTER PROCEDURE dbo.sp_ToggleSaved
     @UserId INT, @RecipeId INT
 AS
@@ -265,27 +227,17 @@ BEGIN
     END
 END
 GO
-
-/* =====================================================================
-   5. THÊM DỮ LIỆU MẪU (SEED DATA)
-   ===================================================================== */
-
--- Users
 INSERT dbo.Users (Username, DisplayName, Email, PasswordHash, Role) VALUES
  (N'sieudaubepnhi', N'Siêu đầu bếp nhí', N'owner@cookingbaby.demo', N'DEMO_HASH_CHANGE_ME', N'User'),
  (N'thanhbinh',     N'Thanh Bình',       N'binh@cookingbaby.demo',  N'DEMO_HASH_CHANGE_ME', N'User'),
  (N'quynhnhu',      N'Quỳnh Như',        N'nhu@cookingbaby.demo',   N'DEMO_HASH_CHANGE_ME', N'User'),
  (N'admin',         N'Quản trị viên',    N'admin@cookingbaby.demo', N'DEMO_HASH_CHANGE_ME', N'Admin');
-
--- Categories
 INSERT dbo.Categories (CategoryName, ThemeColor, DisplayOrder) VALUES
  (N'Ăn Sáng & Món Nhanh', '#F97316', 1),
  (N'Món Chính & Súp Hầm', '#F59E0B', 2),
  (N'Bánh & Tráng Miệng', '#EC4899', 3),
  (N'Healthy & Rau Củ', '#22C55E', 4);
 GO
-
--- Khai báo biến để gán đúng ID tác giả và danh mục cho món ăn
 DECLARE @owner INT = (SELECT UserId FROM dbo.Users WHERE Username = N'sieudaubepnhi'),
         @binh  INT = (SELECT UserId FROM dbo.Users WHERE Username = N'thanhbinh'),
         @nhu   INT = (SELECT UserId FROM dbo.Users WHERE Username = N'quynhnhu'),
@@ -297,51 +249,37 @@ DECLARE @catSang   INT = (SELECT CategoryId FROM dbo.Categories WHERE DisplayOrd
         @catHealth INT = (SELECT CategoryId FROM dbo.Categories WHERE DisplayOrder = 4);
 
 DECLARE @r1 INT, @r2 INT, @r3 INT, @r4 INT, @r5 INT;
-
--- 1. Súp Bí Đỏ (Tác giả: Siêu đầu bếp nhí)
 INSERT dbo.Recipes (Title, Description, CookTime, ImageUrl, CategoryId, AuthorId, Status, ApprovedBy, ApprovedAt)
 VALUES (N'Súp Bí Đỏ Kem Tươi Hầm Kiểu Âu',
         N'Món súp sánh mịn, vàng óng giống hệt nồi súp của 4 em bé trong logo Cooking Baby. Vị ngọt tự nhiên từ bí đỏ quện cùng sữa tươi và bơ lạt béo thơm.',
         25, N'supbido.jpg', @catChinh, @owner, N'Đã duyệt', @admin, SYSDATETIME());
 SET @r1 = SCOPE_IDENTITY();
-
--- 2. Salad Ức Gà (Tác giả: Thanh Bình)
 INSERT dbo.Recipes (Title, Description, CookTime, ImageUrl, CategoryId, AuthorId, Status, ApprovedBy, ApprovedAt)
 VALUES (N'Salad Ức Gà Áp Chảo & Cà Chua Bi Sốt Mè',
         N'Ức gà giữ được độ mềm mọng nước nhờ bí quyết áp chảo đậy nắp, ăn kèm rau xanh và cà chua bi tươi mát.',
         20, N'saladucga.jpg', @catHealth, @binh, N'Đã duyệt', @admin, SYSDATETIME());
 SET @r2 = SCOPE_IDENTITY();
-
--- 3. Trứng Chần (Tác giả: Quỳnh Như)
 INSERT dbo.Recipes (Title, Description, CookTime, ImageUrl, CategoryId, AuthorId, Status, ApprovedBy, ApprovedAt)
 VALUES (N'Trứng Chần Nấm Đùi Gà Sốt Tương Nhật',
         N'Món ăn sáng siêu tốc giàu đạm với lòng đào béo ngậy quyện cùng nấm đùi gà áp chảo giòn ngọt.',
         12, N'trungchan.jpeg', @catSang, @nhu, N'Đã duyệt', @admin, SYSDATETIME());
 SET @r3 = SCOPE_IDENTITY();
-
--- 4. Bánh Kếp Pancake (Tác giả: Siêu đầu bếp nhí)
 INSERT dbo.Recipes (Title, Description, CookTime, ImageUrl, CategoryId, AuthorId, Status, ApprovedBy, ApprovedAt)
 VALUES (N'Bánh Kếp (Pancake) Mật Ong Bơ Tươi',
         N'Những chiếc bánh pancake tròn xoe, bông xốp thơm lừng mùi bơ sữa, chỉ mất 15 phút chuẩn bị cho bữa sáng cuối tuần.',
         15, N'pancake.jpg', @catBanh, @owner, N'Đã duyệt', @admin, SYSDATETIME());
 SET @r4 = SCOPE_IDENTITY();
-
--- 5. Tôm Xào (Tác giả: Siêu đầu bếp nhí - Chờ duyệt)
 INSERT dbo.Recipes (Title, Description, CookTime, ImageUrl, CategoryId, AuthorId, Status)
 VALUES (N'Tôm Tươi Xào Cà Chua Trứng Mềm Mượt',
         N'Sự kết hợp kinh điển giữa tôm tươi giòn ngọt và sốt trứng cà chua sánh mịn, cực kỳ bắt cơm.',
         18, N'tomxaotrungcachua.jpg', @catChinh, @owner, N'Chờ duyệt');
 SET @r5 = SCOPE_IDENTITY();
-
--- Nguyên liệu (RecipeIngredients)
 INSERT dbo.RecipeIngredients (RecipeId, IngredientName, SortOrder) VALUES
  (@r1, N'Bí đỏ', 1),    (@r1, N'Sữa tươi', 2), (@r1, N'Bơ lạt', 3),   (@r1, N'Tỏi băm', 4),
  (@r2, N'Ức gà', 1),    (@r2, N'Cà chua', 2),  (@r2, N'Trứng gà', 3), (@r2, N'Xà lách', 4),
  (@r3, N'Trứng gà', 1), (@r3, N'Nấm', 2),      (@r3, N'Bơ lạt', 3),
  (@r4, N'Trứng gà', 1), (@r4, N'Sữa tươi', 2), (@r4, N'Bơ lạt', 3),   (@r4, N'Bột mì', 4),
  (@r5, N'Tôm tươi', 1), (@r5, N'Trứng gà', 2), (@r5, N'Cà chua', 3);
-
--- Các bước thực hiện (RecipeSteps)
 INSERT dbo.RecipeSteps (RecipeId, StepNumber, Instruction) VALUES
  (@r1, 1, N'Hấp hoặc luộc bí đỏ cắt miếng đến khi thật mềm.'),
  (@r1, 2, N'Phi thơm tỏi băm với bơ lạt, cho bí đỏ vào xào sơ.'),
@@ -363,20 +301,13 @@ INSERT dbo.RecipeSteps (RecipeId, StepNumber, Instruction) VALUES
  (@r5, 2, N'Xào tôm đến khi chín đỏ rồi múc ra.'),
  (@r5, 3, N'Xào cà chua đến khi nhuyễn, đổ trứng đã đánh vào, trộn tôm lại và nêm nếm.');
 
--- Đánh giá (Ratings)
 INSERT dbo.Ratings (RecipeId, UserId, Stars) VALUES
  (@r1, @binh, 5), (@r1, @nhu, 5),
  (@r2, @owner, 5),
  (@r3, @binh, 4);
-
--- Bình luận (Comments)
 INSERT dbo.Comments (RecipeId, UserId, Content) VALUES
  (@r2, @owner, N'Cách ủ ức gà này giúp thịt mềm thật sự, không bị bã chút nào.');
-
--- Món đã lưu (SavedRecipes)
 INSERT dbo.SavedRecipes (UserId, RecipeId) VALUES (@owner, @r1), (@owner, @r2);
 GO
-
--- Kiểm tra lại toàn bộ dữ liệu qua View
 SELECT RecipeId, Title, AuthorName, Status, Ingredients FROM dbo.vw_RecipeCards;
 GO
