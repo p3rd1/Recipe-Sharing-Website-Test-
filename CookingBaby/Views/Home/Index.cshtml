@@ -1,0 +1,244 @@
+﻿@model CookingBaby.Models.RecipeHomeViewModel
+@{
+    ViewBag.Title = "Trang Chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Hero Banner Tìm Kiếm & Lọc Nhiều Tag Nguyên Liệu -->
+<section class="hero-cooking">
+    <div style="flex: 1;">
+        <small class="hero-subtitle">● Cộng đồng chia sẻ công thức chuẩn vị tại nhà</small>
+        <h1 class="hero-title">Hôm nay trong bếp bạn có <span>nguyên liệu</span> gì?</h1>
+
+        @using (Html.BeginForm("Index", "Home", FormMethod.Get, new { id = "filterForm" }))
+        {
+            if (Model.SelectedCategoryId.HasValue)
+            {
+                <input type="hidden" name="categoryId" value="@Model.SelectedCategoryId" />
+            }
+
+            <div class="search-form">
+                <input type="text" name="keyword" value="@Model.Keyword" placeholder="Tìm theo tên món ăn, mô tả, nguyên liệu (VD: Súp bí đỏ, Salad, Pancake...)" />
+                <button type="submit" class="btn-search">Tìm kiếm</button>
+            </div>
+
+            <!-- KHU VỰC CHỌN NHIỀU TAG NGUYÊN LIỆU -->
+            if (Model.AvailableIngredients != null && Model.AvailableIngredients.Any())
+            {
+                <div style="margin-top: 14px;">
+                    <span style="font-size: 13px; font-weight: 700; color: #4A5568; display: block; margin-bottom: 8px;">
+                        🏷️ Lọc theo nguyên liệu (có thể chọn nhiều):
+                    </span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        @foreach (var ing in Model.AvailableIngredients)
+                        {
+                            bool isChecked = Model.SelectedIngredients != null &&
+                                             Model.SelectedIngredients.Any(x => x.Equals(ing, StringComparison.OrdinalIgnoreCase));
+                            <label style="cursor: pointer; user-select: none; display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; transition: all 0.2s; border: 1px solid @(isChecked ? "#DD6B20" : "#CBD5E0"); background: @(isChecked ? "#FEEBC8" : "#FFFFFF"); color: @(isChecked ? "#9C4221" : "#4A5568");">
+                                <input type="checkbox"
+                                       name="ingredients"
+                                       value="@ing"
+                                       @(isChecked ? "checked" : "")
+                                       onchange="document.getElementById('filterForm').submit();"
+                                       style="display: none;" />
+                                @(isChecked ? "✓ " : "+ ") @ing
+                            </label>
+                        }
+
+                        @if (Model.SelectedIngredients != null && Model.SelectedIngredients.Any())
+                        {
+                            <a href="@Url.Action("Index", "Home", new { categoryId = Model.SelectedCategoryId, keyword = Model.Keyword, sortBy = Model.SortBy })"
+                               style="padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #E53E3E; background: #FFF5F5; border: 1px solid #FEB2B2; text-decoration: none;">
+                                ✕ Bỏ chọn nguyên liệu
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Giữ trạng thái Sắp xếp khi bấm Tìm kiếm hoặc chọn Tag -->
+            <input type="hidden" name="sortBy" id="hiddenSortBy" value="@Model.SortBy" />
+        }
+    </div>
+
+    <!-- Khung Thế giới của đầu bếp nhí có Logo và Viền chuẩn -->
+    <div class="mascot-box">
+        <span class="mascot-badge">Thế giới của đầu bếp nhí</span>
+        <img src="~/Content/images/logo.jpg" alt="Cooking Baby Mascot" class="mascot-img" />
+        <p class="mascot-text">Chọn danh mục hoặc nguyên liệu để lọc nhóm món ăn!</p>
+    </div>
+</section>
+
+<!-- Thanh Tab Lọc 4 Danh Mục Lấy Động Từ Database -->
+<div class="category-filter-bar">
+    <a href="javascript:void(0)"
+       onclick="filterByCategory('')"
+       class="cat-pill @(!Model.SelectedCategoryId.HasValue ? "active" : "")">
+        Tất cả món
+    </a>
+    @foreach (var cat in Model.Categories)
+    {
+        <a href="javascript:void(0)"
+           onclick="filterByCategory('@cat.CategoryId')"
+           class="cat-pill @(Model.SelectedCategoryId == cat.CategoryId ? "active" : "")">
+            @cat.CategoryName
+        </a>
+    }
+</div>
+
+<!-- Tiêu đề số lượng món & Menu Sắp xếp -->
+<div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <h3 class="section-title">
+        Tất cả công thức đã duyệt
+        <span class="count-badge">@Model.Recipes.Count món</span>
+    </h3>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="sortSelect" style="font-size: 13px; font-weight: 700; color: #4A5568;">Sắp xếp:</label>
+        <select id="sortSelect"
+                onchange="document.getElementById('hiddenSortBy').value = this.value; document.getElementById('filterForm').submit();"
+                style="padding: 6px 12px; border-radius: 8px; border: 1px solid #CBD5E0; font-size: 13px; font-weight: 600; color: #2D3748; background: #FFFFFF; cursor: pointer; outline: none;">
+            <option value="newest" @(Model.SortBy == "newest" || string.IsNullOrEmpty(Model.SortBy) ? "selected" : "")>Mới nhất</option>
+            <option value="rating" @(Model.SortBy == "rating" ? "selected" : "")>Đánh giá cao nhất (★)</option>
+            <option value="time_asc" @(Model.SortBy == "time_asc" ? "selected" : "")>Thời gian nấu nhanh nhất (⏱)</option>
+            <option value="name_asc" @(Model.SortBy == "name_asc" ? "selected" : "")>Tên món ăn (A - Z)</option>
+        </select>
+    </div>
+</div>
+
+<!-- Lưới danh sách món ăn từ Database -->
+@if (!Model.Recipes.Any())
+{
+    <div style="text-align: center; padding: 40px 20px; background: #FFFFFF; border-radius: 16px; border: 1px dashed #CBD5E0; margin-bottom: 30px;">
+        <p style="font-size: 15px; font-weight: 700; color: #4A5568; margin-bottom: 8px;">
+            Không tìm thấy món ăn nào phù hợp với điều kiện lọc hiện tại.
+        </p>
+        <a href="@Url.Action("Index", "Home")" style="display: inline-block; padding: 8px 16px; border-radius: 8px; background: #DD6B20; color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none;">
+            Xem lại tất cả món ăn
+        </a>
+    </div>
+}
+else
+{
+    <div class="recipe-grid">
+        @foreach (var item in Model.Recipes)
+        {
+            bool isSaved = false;
+            if (ViewBag.SavedRecipeIds != null)
+            {
+                int[] savedIds = (int[])ViewBag.SavedRecipeIds;
+                isSaved = savedIds.Contains(item.RecipeId);
+            }
+
+            <article class="recipe-card" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
+
+                <div class="card-img-wrap" style="position: relative;">
+                    <!-- Badge thời gian -->
+                    <span class="time-badge">⏱ @item.CookTime phút</span>
+
+                    <!-- Ảnh đại diện món ăn -->
+                    <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+
+                    <!-- Nút Trái Tim nổi góc trên bên phải ảnh -->
+                    <button type="button"
+                            class="btn-heart-toggle @(isSaved ? "saved" : "")"
+                            title="@(isSaved ? "Bỏ lưu món này" : "Lưu món này")"
+                            onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, false);">
+                        ♥
+                    </button>
+                </div>
+
+                <div class="card-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span class="cat-label">@item.CategoryName</span>
+                        @if (item.RatingCount > 0 && item.AvgRating.HasValue)
+                        {
+                            <span style="color: #DD6B20; font-size: 11.5px; font-weight: 800;">
+                                ★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="color: #A0AEC0; font-size: 11.5px; font-weight: 800;">☆ Mới (0)</span>
+                        }
+                    </div>
+                    <h4 class="recipe-title">@item.Title</h4>
+                    <p class="recipe-desc">@item.Description</p>
+
+                    <!-- HIỂN THỊ TAG NGUYÊN LIỆU TRÊN THẺ MÓN ĂN -->
+                    @if (!string.IsNullOrWhiteSpace(item.Ingredients))
+                    {
+                        var cardIngs = item.Ingredients.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Take(3).ToList();
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
+                            @foreach (var ingName in cardIngs)
+                            {
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #EDF2F7; color: #4A5568; font-weight: 600;">
+                                    @ingName
+                                </span>
+                            }
+                        </div>
+                    }
+
+                    <!-- HIỂN THỊ TÁC GIẢ ĐỘNG THEO TỪNG MÓN -->
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; color: #718096;">
+                            Đầu bếp: <strong style="color: #2D3748;">@item.AuthorName</strong>
+                        </span>
+                    </div>
+                </div>
+
+            </article>
+        }
+    </div>
+}
+
+@section scripts {
+    <script>
+        // Hàm hỗ trợ chuyển tab Danh mục mà vẫn giữ nguyên các Tag nguyên liệu, Từ khóa và Sắp xếp đang chọn
+        function filterByCategory(catId) {
+            var form = document.getElementById('filterForm');
+            var catInput = form.querySelector('input[name="categoryId"]');
+            if (catId === '') {
+                if (catInput) catInput.remove();
+            } else {
+                if (!catInput) {
+                    catInput = document.createElement('input');
+                    catInput.type = 'hidden';
+                    catInput.name = 'categoryId';
+                    form.appendChild(catInput);
+                }
+                catInput.value = catId;
+            }
+            form.submit();
+        }
+
+        function toggleHomeSave(btn, recipeId) {
+            $.ajax({
+                url: '/Home/ToggleSaved',
+                type: 'POST',
+                data: { recipeId: recipeId },
+                success: function (res) {
+                    if (res.success) {
+                        if (res.isSaved) {
+                            $(btn).addClass('saved'); $(btn).attr('title', 'Bỏ lưu món này');
+                        } else {
+                            $(btn).removeClass('saved'); $(btn).attr('title', 'Lưu món này');
+                        }
+
+                        // Tự động cập nhật số đếm badge trên tab "Đã Lưu"
+                        var badge = $('.nav-tab-item[href*="SavedRecipes"] .nav-badge');
+                        if (badge.length) {
+                            var count = parseInt(badge.text()) || 0;
+                            badge.text(res.isSaved ? count + 1 : Math.max(0, count - 1));
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                },
+                error: function () {
+                    alert('Không thể thực hiện hành động này. Vui lòng kiểm tra lại kết nối!');
+                }
+            });
+        }
+    </script>
+}

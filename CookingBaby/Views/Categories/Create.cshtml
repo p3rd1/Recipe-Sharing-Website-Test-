@@ -1,0 +1,40 @@
+﻿@model CookingBaby.Models.Category
+
+@{
+    ViewBag.Title = "Thêm Danh Mục Mới";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-card">
+    <h2 class="admin-card-title">THÊM DANH MỤC MỚI</h2>
+    <p class="admin-card-subtitle">Tạo nhóm công thức mới cho biệt đội Đầu Bếp Nhí</p>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 24px;" />
+
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Tên danh mục</label>
+            @Html.TextBoxFor(model => model.CategoryName, new { @class = "form-input-custom", placeholder = "Ví dụ: Món Chay Dinh Dưỡng" })
+            @Html.ValidationMessageFor(model => model.CategoryName, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Mã màu nhận diện (Hex Color)</label>
+            @Html.TextBoxFor(model => model.ThemeColor, new { @class = "form-input-custom", placeholder = "Ví dụ: #10B981" })
+            @Html.ValidationMessageFor(model => model.ThemeColor, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Thứ tự hiển thị</label>
+            @Html.TextBoxFor(model => model.DisplayOrder, new { @class = "form-input-custom", type = "number", value = "5" })
+            @Html.ValidationMessageFor(model => model.DisplayOrder, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-actions-custom">
+            <input type="submit" value="Tạo Mới" class="btn-submit-custom" />
+            @Html.ActionLink("Quay lại danh sách", "Index", null, new { @class = "btn-cancel-custom" })
+        </div>
+    }
+</div>

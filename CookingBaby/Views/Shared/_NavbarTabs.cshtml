@@ -1,0 +1,30 @@
+﻿@{
+    string activeTab = ViewBag.ActiveTab as string;
+    int myRecipeCount = ViewBag.MyRecipeCount ?? 0;
+    int savedCount = ViewBag.SavedCount ?? 0;
+}
+
+<nav class="nav-tab-group">
+    <!-- 1. Trang chủ -->
+    <a href="@Url.Action("Index", "Home", new { area = "" })"
+       class="nav-tab-item @(activeTab != "MyRecipes" && activeTab != "SavedRecipes" && activeTab != "Admin" ? "active" : "")">
+        Khám Phá Công Thức
+    </a>
+    
+    <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })" class="nav-tab-item @(ViewBag.ActiveTab == "MyRecipes" ? "active" : "")">
+        Quản Lý Cá Nhân <span class="nav-badge">@myRecipeCount</span>
+    </a>
+
+    <a href="@Url.Action("SavedRecipes", "Recipe", new { area = "" })" class="nav-tab-item @(ViewBag.ActiveTab == "SavedRecipes" ? "active" : "")">
+        Đã Lưu
+    </a>
+
+    <!-- 4. Quản lý danh mục -->
+    @Html.ActionLink("Quản Lý Danh Mục", "Index", "Categories", new { area = "" }, new { @class = "nav-tab-item" })
+
+    <!-- 5. Quản trị duyệt bài -->
+    <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })"
+       class="nav-tab-item @(activeTab == "Admin" ? "active" : "")">
+        Duyệt Bài (Admin)
+    </a>
+</nav>

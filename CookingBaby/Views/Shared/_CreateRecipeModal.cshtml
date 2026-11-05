@@ -1,0 +1,61 @@
+﻿@* Views/Shared/_CreateRecipeModal.cshtml *@
+<div id="createRecipeModal" class="modal-overlay">
+    <div class="modal-window">
+        <button type="button" class="modal-close-btn" onclick="document.getElementById('createRecipeModal').style.display='none'">✕</button>
+
+        <h3 class="modal-header-title">Đăng Chia Sẻ Công Thức Mới</h3>
+        <p class="modal-header-desc">Công thức của bạn sẽ được gửi tới Ban Quản Trị duyệt trước khi công khai</p>
+        <hr style="border: 0; border-top: 1px solid #EDF2F7; margin-bottom: 20px;" />
+
+        @using (Html.BeginForm("CreateRecipe", "Recipe", FormMethod.Post, new { enctype = "multipart/form-data", id = "createRecipeForm", onsubmit = "return validateCreateModalForm();" }))
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="form-group-custom">
+                <label class="form-label-custom">Tên món ăn <span style="color:red;">*</span></label>
+                <input type="text" name="Title" id="createTitle" required class="form-input-custom" placeholder="Ví dụ: Bánh Mì Nướng Bơ Tỏi" />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group-custom">
+                    <label class="form-label-custom">Danh mục Đầu Bếp Nhí <span style="color:red;">*</span></label>
+                    @Html.DropDownList("CategoryId", new SelectList(new CookingBaby.Models.CookingBabyDBEntities().Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName"), new { @class = "form-input-custom", required = "required" })
+                </div>
+                <div class="form-group-custom">
+                    <label class="form-label-custom">Thời gian nấu (phút) <span style="color:red;">*</span></label>
+                    <input type="number" name="CookTime" id="createCookTime" value="15" min="1" max="1440" required class="form-input-custom" />
+                </div>
+            </div>
+
+            <div class="form-group-custom">
+                <label class="form-label-custom">Hình ảnh đại diện (.jpg, .png, .webp)</label>
+                <input type="file" name="ImageFile" id="createImageFile" accept=".jpg,.jpeg,.png,.webp" class="form-input-custom" style="padding-top: 7px;" />
+            </div>
+
+            <div class="form-group-custom">
+                <label class="form-label-custom">Mô tả ngắn món ăn</label>
+                <textarea name="Description" id="createDesc" rows="2" class="form-input-custom" placeholder="Món ăn giòn rụm, thơm lừng bơ tỏi..."></textarea>
+            </div>
+
+            <div class="form-group-custom">
+                <label class="form-label-custom">Nguyên liệu (cách nhau bằng dấu phẩy) <span style="color:red;">*</span></label>
+                <input type="text" name="IngredientsList" id="createIngredients" class="form-input-custom" placeholder="Bánh mì, Bơ lạt, Tỏi băm, Mùi tây" required />
+            </div>
+
+            <div class="form-group-custom">
+                <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span style="color:red">*</span></label>
+                <textarea name="Instructions"
+                          id="createInstructions"
+                          class="form-input-custom"
+                          rows="3"
+                          placeholder="Sơ chế sạch nguyên liệu.&#10;Nấu chín vừa tới.&#10;Trình bày ra đĩa thưởng thức."
+                          required></textarea>
+            </div>
+
+            <div class="form-actions-custom">
+                <button type="submit" class="btn-submit-custom">Gửi Duyệt Công Thức</button>
+                <button type="button" onclick="document.getElementById('createRecipeModal').style.display='none'" style="background: none; border: none; color: #718096; font-weight: 700; cursor: pointer;">Hủy bỏ</button>
+            </div>
+        }
+    </div>
+</div>

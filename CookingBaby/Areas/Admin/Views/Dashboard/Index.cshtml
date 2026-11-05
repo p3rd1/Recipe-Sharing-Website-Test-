@@ -1,0 +1,146 @@
+@model CookingBaby.Areas.Admin.Models.AdminDashboardViewModel
+@{
+    ViewBag.Title = "Duyệt Bài (Admin)";
+    ViewBag.IsAdminPage = true;
+    ViewBag.ActiveTab = "Admin";
+    var fallbackImage = Url.Content("~/Content/images/pancake.jpg");
+
+}
+<meta charset="utf-8" />
+<div class="admin-dashboard-head">
+    <div>
+        <div class="admin-kicker">ADMIN CONTROL PANEL</div>
+        <h1 class="admin-dashboard-title">Duyệt Bài (Admin)</h1>
+        <p class="admin-dashboard-subtitle">Theo dõi trạng thái và quản lý các công thức được gửi lên Cooking Baby.</p>
+    </div>
+</div>
+
+@if (TempData["AdminSuccess"] != null)
+{
+    <div class="admin-alert admin-alert-success">@TempData["AdminSuccess"]</div>
+}
+@if (TempData["AdminError"] != null)
+{
+    <div class="admin-alert admin-alert-error">@TempData["AdminError"]</div>
+}
+
+<div class="admin-stat-grid">
+    <div class="admin-stat-card stat-visible">
+        <div class="admin-stat-icon">✓</div>
+        <div>
+            <div class="admin-stat-label">Đang hiển thị</div>
+            <div class="admin-stat-number">@Model.VisibleCount</div>
+            <div class="admin-stat-note">Công thức đã duyệt</div>
+        </div>
+    </div>
+
+    <div class="admin-stat-card stat-pending">
+        <div class="admin-stat-icon">⏳</div>
+        <div>
+            <div class="admin-stat-label">Chờ duyệt</div>
+            <div class="admin-stat-number">@Model.PendingCount</div>
+            <div class="admin-stat-note">Cần Admin kiểm tra</div>
+        </div>
+    </div>
+
+    <div class="admin-stat-card stat-hidden">
+        <div class="admin-stat-icon">⊘</div>
+        <div>
+            <div class="admin-stat-label">Đã ẩn</div>
+            <div class="admin-stat-number">@Model.HiddenCount</div>
+            <div class="admin-stat-note">Không hiển thị công khai</div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-list-header">
+    <div>
+        <h2>Danh sách món ăn</h2>
+        <p>Tổng cộng @Model.Recipes.Count công thức trong hệ thống</p>
+    </div>
+</div>
+
+<div class="admin-recipe-table-wrap">
+    <table class="admin-recipe-table">
+        <thead>
+            <tr>
+                <th>Món ăn</th>
+                <th>Danh mục</th>
+                <th>Tác giả</th>
+                <th>Ngày đăng</th>
+                <th>Trạng thái</th>
+                <th class="admin-action-col">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Recipes.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" class="admin-empty-row">Chưa có công thức nào trong hệ thống.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var item in Model.Recipes)
+                {
+                    var imageFile = string.IsNullOrWhiteSpace(item.ImageUrl) ? "pancake.jpg" : item.ImageUrl;
+                    var imagePath = Url.Content("~/Content/images/" + imageFile);
+                    <tr>
+                        <td>
+                            <div class="admin-recipe-cell">
+                                <img src="@imagePath"
+                                     alt="@item.Title"
+                                     class="admin-recipe-thumb"
+                                     onerror="this.src='@fallbackImage'" />
+                                <div>
+                                    <div class="admin-recipe-name">@item.Title</div>
+                                    <div class="admin-recipe-time">⏱ @item.CookTime phút</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@item.CategoryName</td>
+                        <td>@item.AuthorName</td>
+                        <td>@item.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (item.Status == "Đã duyệt")
+                            {
+                                <span class="admin-status admin-status-approved">Đã duyệt</span>
+                            }
+                            else if (item.Status == "Chờ duyệt")
+                            {
+                                <span class="admin-status admin-status-pending">Chờ duyệt</span>
+                            }
+                            else
+                            {
+                                <span class="admin-status admin-status-hidden">Đã ẩn</span>
+                            }
+                        </td>
+                        <td class="admin-action-col">
+                            <div class="admin-row-actions">
+                                @if (item.Status != "Đã duyệt")
+                                {
+                                    using (Html.BeginForm("Approve", "Dashboard", new { area = "Admin", id = item.RecipeId }, FormMethod.Post, new { @class = "admin-inline-form" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-btn admin-btn-approve">
+                                            @(item.Status == "Đã ẩn" ? "Duyệt lại" : "Duyệt")
+                                        </button>
+                                    }
+                                }
+
+                                @if (item.Status != "Đã ẩn")
+                                {
+                                    using (Html.BeginForm("Hide", "Dashboard", new { area = "Admin", id = item.RecipeId }, FormMethod.Post, new { @class = "admin-inline-form" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-btn admin-btn-hide" onclick="return confirm('Bạn có chắc muốn ẩn món này?');">Ẩn</button>
+                                    }
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

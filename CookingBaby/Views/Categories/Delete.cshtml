@@ -1,0 +1,43 @@
+﻿@model CookingBaby.Models.Category
+
+@{
+    ViewBag.Title = "Xác Nhận Xóa Danh Mục";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-card">
+    <h2 class="admin-card-title" style="color: #E53E3E;">XÁC NHẬN XÓA DANH MỤC</h2>
+    <p class="admin-card-subtitle">Hành động này sẽ gỡ bỏ danh mục khỏi thanh tab trang chủ</p>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 20px;" />
+
+    <div class="alert-delete-box">
+        ⚠ Bạn có chắc chắn muốn xóa danh mục này không? Các món ăn liên kết có thể bị ảnh hưởng.
+    </div>
+
+    <div class="detail-list">
+        <div class="detail-row">
+            <span class="detail-label">Tên danh mục:</span>
+            <span class="detail-value" style="font-size: 16px;">@Model.CategoryName</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Màu nhận diện:</span>
+            <span class="detail-value">
+                <span class="color-dot" style="background-color: @Model.ThemeColor;"></span>
+                <code class="color-tag">@Model.ThemeColor</code>
+            </span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Thứ tự hiển thị:</span>
+            <span class="detail-value">#@Model.DisplayOrder</span>
+        </div>
+    </div>
+
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-actions-custom">
+            <input type="submit" value="Xác Nhận Xóa" class="btn-delete-custom" />
+            @Html.ActionLink("Hủy bỏ", "Index", null, new { @class = "btn-cancel-custom" })
+        </div>
+    }
+</div>

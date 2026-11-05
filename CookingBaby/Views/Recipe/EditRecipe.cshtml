@@ -1,0 +1,129 @@
+﻿@model CookingBaby.Models.Recipe
+@{
+    ViewBag.Title = "Chỉnh Sửa Công Thức";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-card" style="position: relative;">
+    <!-- Nút [X] quay về Quản Lý Cá Nhân -->
+    <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })"
+       class="modal-close-btn"
+       style="text-decoration: none; top: 24px; right: 24px;"
+       title="Đóng / Quay lại">✕</a>
+
+    <div style="margin-bottom: 20px; padding-right: 40px;">
+        <h2 class="admin-card-title">Chỉnh Sửa Công Thức</h2>
+        <p class="admin-card-subtitle">Cập nhật thông tin công thức món ăn của bạn</p>
+    </div>
+
+    @using (Html.BeginForm("EditRecipe", "Recipe", FormMethod.Post, new { enctype = "multipart/form-data", id = "editRecipeForm", onsubmit = "return validateEditForm();" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.RecipeId)
+
+        @Html.ValidationSummary(true, "", new { @style = "color: #dc2626; background: #fef2f2; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px;" })
+
+        <div id="editClientError" style="display:none; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; font-weight: 500;"></div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div class="form-group-custom">
+                <label class="form-label-custom">Tên món ăn <span style="color:red">*</span></label>
+                @Html.TextBoxFor(model => model.Title, new { @class = "form-input-custom", id = "editTitle", maxlength = "200", placeholder = "Nhập tên món ăn...", required = "required" })
+                @Html.ValidationMessageFor(model => model.Title, "", new { @style = "color:red; font-size:12px;" })
+            </div>
+            <div class="form-group-custom">
+                <label class="form-label-custom">Thời gian nấu (phút) <span style="color:red">*</span></label>
+                @Html.TextBoxFor(model => model.CookTime, new { @class = "form-input-custom", id = "editCookTime", type = "number", min = "1", max = "1440", required = "required" })
+                @Html.ValidationMessageFor(model => model.CookTime, "", new { @style = "color:red; font-size:12px;" })
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div class="form-group-custom">
+                <label class="form-label-custom">Danh mục Đầu Bếp Nhí <span style="color:red">*</span></label>
+                @Html.DropDownList("CategoryId", null, htmlAttributes: new { @class = "form-input-custom", required = "required" })
+            </div>
+            <div class="form-group-custom">
+                <label class="form-label-custom">Thay đổi ảnh đại diện (.jpg, .png, .webp)</label>
+                <input type="file" name="ImageFile" id="editImageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" />
+            </div>
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 14px;">
+            <label class="form-label-custom">Mô tả ngắn món ăn <span style="color:red">*</span></label>
+            @Html.TextAreaFor(model => model.Description, new { @class = "form-input-custom", id = "editDescription", rows = "2", maxlength = "500", placeholder = "Mô tả hương vị hấp dẫn của món ăn...", required = "required" })
+            @Html.ValidationMessageFor(model => model.Description, "", new { @style = "color:red; font-size:12px;" })
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 14px;">
+            <label class="form-label-custom">Nguyên liệu (Cách nhau bằng dấu phẩy) <span style="color:red">*</span></label>
+            <input type="text" name="IngredientsList" id="editIngredients" class="form-input-custom" value="@ViewBag.IngredientsString" placeholder="VD: Trứng gà, Bơ lạt, Sữa tươi" required />
+            @if (ViewBag.IngredientsError != null)
+            {
+                <span style="color:red; font-size:12px;">@ViewBag.IngredientsError</span>
+            }
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 14px;">
+            <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span style="color:red">*</span></label>
+            <textarea name="Instructions" id="editInstructions" class="form-input-custom" rows="5" placeholder="Bước 1: Sơ chế sạch nguyên liệu.&#10;Bước 2: Nấu chín vừa tới.&#10;Bước 3: Trình bày ra đĩa." required>@ViewBag.InstructionsString</textarea>
+            @if (ViewBag.InstructionsError != null)
+            {
+                <span style="color:red; font-size:12px;">@ViewBag.InstructionsError</span>
+            }
+        </div>
+
+        <div class="form-actions-custom" style="display: flex; align-items: center; gap: 16px; margin-top: 24px;">
+            <button type="submit" class="btn-submit-custom">Lưu Thay Đổi</button>
+            <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })" class="btn-cancel-custom">Hủy bỏ</a>
+        </div>
+    }
+</div>
+
+<script>
+    function validateEditForm() {
+        var title = document.getElementById("editTitle").value.trim();
+        var cookTime = parseInt(document.getElementById("editCookTime").value, 10);
+        var desc = document.getElementById("editDescription").value.trim();
+        var ings = document.getElementById("editIngredients").value.trim();
+        var steps = document.getElementById("editInstructions").value.trim();
+        var fileInput = document.getElementById("editImageFile");
+        var errBox = document.getElementById("editClientError");
+
+        var errors = [];
+
+        if (title.length < 3) {
+            errors.push("Tên món ăn phải có ít nhất 3 ký tự.");
+        }
+        if (isNaN(cookTime) || cookTime <= 0 || cookTime > 1440) {
+            errors.push("Thời gian nấu phải là số nguyên dương từ 1 đến 1440 phút.");
+        }
+        if (desc.length < 10) {
+            errors.push("Mô tả ngắn món ăn cần tối thiểu 10 ký tự.");
+        }
+        var ingItems = ings.split(/[,;]/).map(s => s.trim()).filter(s => s.length > 0);
+        if (ingItems.length === 0) {
+            errors.push("Vui lòng nhập ít nhất 1 nguyên liệu hợp lệ.");
+        }
+        var stepItems = steps.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+        if (stepItems.length === 0) {
+            errors.push("Vui lòng nhập ít nhất 1 bước thực hiện.");
+        }
+        if (fileInput.files.length > 0) {
+            var fileName = fileInput.files[0].name.toLowerCase();
+            if (!/\.(jpg|jpeg|png|webp|gif)$/.test(fileName)) {
+                errors.push("File ảnh tải lên chỉ chấp nhận định dạng .jpg, .jpeg, .png hoặc .webp.");
+            }
+        }
+
+        if (errors.length > 0) {
+            errBox.innerHTML = "⚠️ " + errors.join("<br/>⚠️ ");
+            errBox.style.display = "block";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return false;
+        }
+
+        errBox.style.display = "none";
+        return true;
+    }
+</script>

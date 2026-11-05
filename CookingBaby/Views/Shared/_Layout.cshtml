@@ -1,0 +1,191 @@
+﻿@{
+    bool isAdminPage = (ViewBag.IsAdminPage as bool?) == true;
+
+    int myRecipeCount = 0;
+    int savedCount = 0;
+    int pendingAdminCount = 0;
+
+    try
+    {
+        using (var dbContext = new CookingBaby.Models.CookingBabyDBEntities())
+        {
+            var chef = dbContext.Users.FirstOrDefault(u => u.Username == "sieudaubepnhi");
+            int chefId = chef != null ? chef.UserId : 1;
+
+            // 1. Đếm món cá nhân của Siêu đầu bếp nhí
+            myRecipeCount = dbContext.Recipes.Count(r => r.AuthorId == chefId && r.Status != "Đã ẩn");
+
+            // 2. Đếm số món đã lưu của user hiện tại
+            savedCount = dbContext.SavedRecipes.Count(s => s.UserId == chefId);
+
+            // 3. Đếm số công thức đang chờ Admin duyệt (Status == "Chờ duyệt")
+            pendingAdminCount = dbContext.Recipes.Count(r => r.Status == "Chờ duyệt");
+        }
+    }
+    catch
+    {
+        myRecipeCount = 0;
+        savedCount = 0;
+        pendingAdminCount = 0;
+    }
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title - Cooking Baby</title>
+    <link href="~/Content/cookingbaby.css" rel="stylesheet" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var tabs = document.querySelectorAll(".nav-tab-item");
+            var currentPath = window.location.pathname.toLowerCase();
+
+            tabs.forEach(function (tab) {
+                tab.classList.remove("active");
+            });
+
+            tabs.forEach(function (tab) {
+                var tabPath = new URL(tab.href).pathname.toLowerCase();
+
+                if (
+                    (currentPath === "/" || currentPath === "/home" || currentPath === "/home/index")
+                    &&
+                    (tabPath === "/" || tabPath === "/home" || tabPath === "/home/index")
+                ) {
+                    tab.classList.add("active");
+                }
+                else if (currentPath === tabPath) {
+                    tab.classList.add("active");
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <!-- Topbar Demo Vai trò -->
+    <div class="demo-topbar">
+        <div class="container topbar-flex">
+            <span class="tag-alert">CHẾ ĐỘ DEMO ĐỒ ÁN</span>
+            <div class="role-selector">
+                <span class="@(!isAdminPage ? "active-role" : "")">Chủ sở hữu (Siêu đầu bếp nhí)</span>
+                <span>Khách xem</span>
+                <span class="@(isAdminPage ? "active-role" : "")">
+                    <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Quản trị viên (Admin)</a>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header chính -->
+    <header class="main-header">
+        <div class="container header-flex">
+            <!-- Khung Logo bên trái -->
+            <a class="brand-pill" href="@Url.Action("Index", "Home", new { area = "" })">
+                <img src="~/Content/images/logo.jpg" alt="Logo" class="logo-img" onerror="this.src='https://placehold.co/48?text=CB'" />
+                <div class="brand-text">
+                    <span class="sub">RECIPE COMMUNITY</span>
+                    <span class="main">Bếp Vui Mỗi Ngày</span>
+                </div>
+            </a>
+
+            <!-- Cụm Tab Menu -->
+            <nav class="nav-tab-group">
+                <!-- 1. Khám phá công thức -->
+                <a href="@Url.Action("Index", "Home", new { area = "" })"
+                   class="nav-tab-item @(ViewBag.ActiveTab != "MyRecipes" && ViewBag.ActiveTab != "SavedRecipes" && ViewBag.ActiveTab != "Admin" ? "active" : "")">
+                    Khám Phá Công Thức
+                </a>
+
+                <!-- 2. Quản lý cá nhân -->
+                <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })"
+                   class="nav-tab-item @(ViewBag.ActiveTab == "MyRecipes" ? "active" : "")">
+                    Quản Lý Cá Nhân <span class="nav-badge">@myRecipeCount</span>
+                </a>
+
+                <!-- 3. Đã lưu -->
+                <a href="@Url.Action("SavedRecipes", "Recipe", new { area = "" })"
+                   class="nav-tab-item @(ViewBag.ActiveTab == "SavedRecipes" ? "active" : "")">
+                    Đã Lưu <span class="nav-badge">@savedCount</span>
+                </a>
+
+                <!-- 4. Quản lý danh mục -->
+                @Html.ActionLink("Quản Lý Danh Mục", "Index", "Categories", new { area = "" }, new { @class = "nav-tab-item" })
+
+                <!-- 5. Duyệt bài Admin -->
+                <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })"
+                   class="nav-tab-item @(ViewBag.ActiveTab == "Admin" ? "active" : "")">
+                    Duyệt Bài (Admin) <span class="nav-badge">@pendingAdminCount</span>
+                </a>
+            </nav>
+
+            <!-- Nút bên phải Header -->
+            <div>
+                @if (!isAdminPage)
+                {
+                    <a href="javascript:void(0)" onclick="openCreateModal()" class="btn-create-recipe">
+                        + Đăng Công Thức
+                    </a>
+                }
+                else
+                {
+                    <span class="admin-header-badge">ADMIN CONTROL PANEL</span>
+                }
+            </div>
+        </div>
+    </header>
+
+    <!-- Thân trang -->
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <!-- Footer chuẩn theo ảnh -->
+    <footer class="site-footer">
+        <div class="container footer-flex">
+            <div class="footer-left">
+                <img src="~/Content/images/logo.jpg" alt="Cooking Baby" class="footer-logo" onerror="this.src='https://placehold.co/32?text=CB'" />
+                <span>— Đồ án Website Chia Sẻ Công Thức Nấu Ăn (Siêu đầu bếp nhí)</span>
+            </div>
+            <div class="footer-right">
+                Nghiệp vụ: Recipe/Category/Ingredient • Đánh giá TB • Phân quyền Chủ sở hữu • Admin Duyệt/Ẩn
+            </div>
+        </div>
+    </footer>
+
+    <!-- NHÚNG MODAL ĐĂNG CÔNG THỨC VÀO LAYOUT ĐỂ TRÁNH LỖI NULL -->
+    @Html.Partial("_RecipeDetailModal")
+    @Html.Partial("_CreateRecipeModal")
+
+    <!-- Nhúng file Script điều khiển -->
+    <script src="~/Scripts/jquery-3.4.1.min.js"></script>
+    <script src="~/Scripts/cookingbaby.js"></script>
+
+    <!-- SCRIPT ĐIỀU KHIỂN MODAL (ĐÃ TỐI ƯU CẢ NÚT ĐÓNG/HỦY) -->
+    <script>
+        function openCreateModal() {
+            var modal = document.getElementById('createRecipeModal');
+            if (modal) {
+                $(modal).css('display', 'flex').addClass('active');
+            }
+        }
+
+        function closeCreateModal() {
+            var modal = document.getElementById('createRecipeModal');
+            if (modal) {
+                $(modal).css('display', 'none').removeClass('active');
+            }
+        }
+
+        // Bắt sự kiện click toàn cục để ẩn modal khi bấm vào nút X, nút Hủy bỏ hoặc vùng nền đen ngoài modal
+        $(document).on('click', '.modal-close-btn, .btn-cancel-custom, #createRecipeModal', function (e) {
+            // Nếu bấm vào nút Hủy, nút X hoặc vùng nền đen (overlay) thì mới ẩn
+            if ($(e.target).is('#createRecipeModal') || $(e.target).hasClass('modal-close-btn') || $(e.target).text() === 'Hủy bỏ' || $(e.target).text() === '✕') {
+                $('#createRecipeModal').css('display', 'none').removeClass('active');
+            }
+        });
+    </script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

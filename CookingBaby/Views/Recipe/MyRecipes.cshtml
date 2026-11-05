@@ -1,0 +1,92 @@
+﻿@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
+@{
+    ViewBag.Title = "Quản Lý Cá Nhân - Công Thức Của Tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-toolbar" style="margin-top: 24px;">
+    <div>
+        <h2 class="admin-title">GÓC BẾP CỦA TÔI</h2>
+        <p class="admin-subtitle">Quản lý danh sách các công thức do bạn đóng góp cho cộng đồng Cooking Baby</p>
+    </div>
+    <!-- Nút mở Modal trực tiếp, đồng bộ với Header -->
+    <a href="javascript:void(0)" onclick="document.getElementById('createRecipeModal').style.display='flex'" class="btn-add-category" style="cursor: pointer; text-decoration: none;">
+        + Đăng Công Thức Mới
+    </a>
+</div>
+
+<div class="section-header">
+    <h3 class="section-title">
+        Công thức của bạn
+        <span class="count-badge">@Model.Count() món</span>
+    </h3>
+</div>
+
+<div class="recipe-grid">
+    @foreach (var item in Model)
+    {
+        <article class="recipe-card" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
+            <!-- Nhãn trạng thái Đã duyệt / Chờ duyệt -->
+            @if (item.Status == "Đã duyệt")
+            {
+                <span class="status-pill status-approved">✔ Đã duyệt</span>
+            }
+            else
+            {
+                <span class="status-pill status-pending">⏳ Chờ duyệt</span>
+            }
+
+            <div class="card-img-wrap">
+                <span class="time-badge">⏱ @item.CookTime phút</span>
+                <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+            </div>
+
+            <div class="card-content">
+                <div class="card-meta">
+                    <span class="cat-label">@(string.IsNullOrEmpty(item.CategoryName) ? "Món ngon" : item.CategoryName)</span>
+                    <span style="color:#D69E2E; font-size:12px; font-weight:700;">★ Mới (0)</span>
+                </div>
+
+                <h4 class="recipe-title">@item.Title</h4>
+                <p class="recipe-desc">@item.Description</p>
+
+                <!-- Danh sách tag nguyên liệu (Đã đồng bộ class .saved-tags-wrap và .saved-tag-pill giống trang chủ) -->
+                <div class="saved-tags-wrap">
+                    @if (!string.IsNullOrWhiteSpace(item.Ingredients))
+                    {
+                        var ingArray = item.Ingredients.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var ing in ingArray)
+                        {
+                            <span class="saved-tag-pill">@ing.Trim()</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="saved-tag-pill">Gia vị chuẩn</span>
+                    }
+                </div>
+
+                <!-- Footer thẻ: Tác giả & 2 nút Sửa, Xóa đúng ảnh mẫu -->
+                <div class="my-card-footer">
+                    <span style="font-size: 12px; color: #718096;">
+                        Đầu bếp: <strong style="color: #2D3748;">@(string.IsNullOrEmpty(item.AuthorName) ? "Siêu đầu bếp nhí" : item.AuthorName)</strong>
+                    </span>
+
+                    <div class="my-card-actions">
+                        <!-- Nút Sửa (dùng stopPropagation để không kích hoạt modal xem chi tiết) -->
+                        <a href="@Url.Action("EditRecipe", "Recipe", new { id = item.RecipeId })"
+                           class="btn-pill-action btn-pill-edit"
+                           onclick="event.stopPropagation();">Sửa</a>
+
+                        <!-- Nút Xóa (Có hộp thoại xác nhận) -->
+                        <a href="@Url.Action("DeleteMyRecipe", "Recipe", new { id = item.RecipeId })"
+                           class="btn-pill-action btn-pill-del"
+                           onclick="event.stopPropagation(); return confirm('Bạn có chắc chắn muốn xóa công thức: @item.Title?');">
+                            Xóa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </article>
+    }
+</div>

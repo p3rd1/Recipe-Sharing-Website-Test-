@@ -1,0 +1,71 @@
+﻿@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
+@{
+    ViewBag.Title = "Công Thức Yêu Thích Đã Lưu";
+}
+
+<div class="saved-header">
+    <span class="saved-sub-badge">SỔ TAY LƯU TRỮ</span>
+    <h1 class="saved-title">Công Thức Yêu Thích Đã Lưu <span class="heart-icon">♥</span></h1>
+    <p class="saved-desc">Danh sách các món ngon bạn đã đánh dấu lại để nấu vào dịp cuối tuần.</p>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <div class="recipe-grid">
+        @foreach (var item in Model)
+        {
+<div class="saved-card" id="recipe-card-@item.RecipeId" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
+    <div class="saved-thumb-wrap">
+        <img src="~/Content/images/@(string.IsNullOrEmpty(item.ImageUrl) ? "pancake.jpg" : item.ImageUrl)" alt="@item.Title" onerror="this.src='https://placehold.co/400x250?text=Food'" />
+        <span class="saved-time-badge">⏱ @item.CookTime phút</span>
+
+        <button type="button" class="btn-heart-unsave" onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, true);" title="Bỏ lưu">
+            ♥
+        </button>
+    </div>
+
+    <div class="saved-content">
+        <div class="saved-meta-row">
+            <span class="cat-label">@item.CategoryName</span>
+            @if (item.RatingCount > 0 && item.AvgRating.HasValue)
+            {
+                <span class="saved-rating">★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)</span>
+            }
+            else
+            {
+                <span class="saved-rating">☆ Mới (0)</span>
+            }
+        </div>
+        <div class="saved-recipe-name" title="@item.Title">@item.Title</div>
+        <p class="saved-recipe-desc">@item.Description</p>
+        <div class="saved-tags-wrap">
+            <span class="saved-tag-pill">Gia vị</span>
+            <span class="saved-tag-pill">Nấu nhanh</span>
+        </div>
+    </div>
+</div>
+        }
+    </div>
+}
+else
+{
+    <div style="text-align: center; padding: 40px; color: var(--muted);">
+        <p>Bạn chưa lưu công thức nào.</p>
+    </div>
+}
+
+<script>
+    function toggleUnsave(recipeId) {
+        if (confirm("Bạn có muốn bỏ lưu món này không?")) {
+            $.post('/Home/ToggleSaved', { recipeId: recipeId }, function (res) {
+                if (res.success) {
+                    $('#recipe-card-' + recipeId).fadeOut(300, function () {
+                        $(this).remove();
+                    });
+                } else {
+                    alert(res.message);
+                }
+            });
+        }
+    }
+</script>
