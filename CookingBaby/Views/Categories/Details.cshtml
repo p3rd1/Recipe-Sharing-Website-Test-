@@ -1,0 +1,39 @@
+﻿@model CookingBaby.Models.Category
+
+@{
+    ViewBag.Title = "Chi Tiết Danh Mục";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-card">
+    <h2 class="admin-card-title">CHI TIẾT DANH MỤC</h2>
+    <p class="admin-card-subtitle">Thông tin nhóm công thức Đầu Bếp Nhí</p>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 18px;" />
+
+    <div class="detail-list">
+        <div class="detail-row">
+            <span class="detail-label">Mã danh mục:</span>
+            <span class="detail-value">#@Model.CategoryId</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Tên danh mục:</span>
+            <span class="detail-value" style="color: var(--brand); font-size: 16px;">@Model.CategoryName</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Màu nhận diện:</span>
+            <span class="detail-value">
+                <span class="color-dot" style="background-color: @Model.ThemeColor;"></span>
+                <code class="color-tag">@Model.ThemeColor</code>
+            </span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Thứ tự hiển thị:</span>
+            <span class="detail-value">Vị trí số @Model.DisplayOrder</span>
+        </div>
+    </div>
+
+    <div class="form-actions-custom">
+        @Html.ActionLink("Chỉnh Sửa", "Edit", new { id = Model.CategoryId }, new { @class = "btn-submit-custom", style = "text-decoration:none;" })
+        @Html.ActionLink("Quay lại danh sách", "Index", null, new { @class = "btn-cancel-custom" })
+    </div>
+</div>

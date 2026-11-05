@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="d2bfe6a7dec447f98f915b217969a626" Name="Diagram1" ZoomLevel="41">
+        <EntityTypeShape EntityType="CookingBabyDBModel.Category" Width="1.5" PointX="0.75" PointY="2.375" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.Comment" Width="1.5" PointX="3" PointY="7.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.Rating" Width="1.5" PointX="6" PointY="7.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.RecipeIngredient" Width="1.5" PointX="5.25" PointY="1" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.Recipe" Width="1.5" PointX="3" PointY="0.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.RecipeStep" Width="1.5" PointX="5.25" PointY="3.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.SavedRecipe" Width="1.5" PointX="8.25" PointY="4.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="CookingBabyDBModel.User" Width="1.5" PointX="0.75" PointY="6.625" IsExpanded="true" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Recipes_Category" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Comments_Recipe" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Comments_User" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Ratings_Recipe" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Ratings_User" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_RecipeIngredients_Recipe" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Recipes_Approver" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_Recipes_Author" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_RecipeSteps_Recipe" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_SavedRecipes_Recipe" ManuallyRouted="false" />
+        <AssociationConnector Association="CookingBabyDBModel.FK_SavedRecipes_User" ManuallyRouted="false" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

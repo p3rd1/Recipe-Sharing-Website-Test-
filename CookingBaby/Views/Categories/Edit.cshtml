@@ -1,0 +1,43 @@
+﻿@model CookingBaby.Models.Category
+
+@{
+    ViewBag.Title = "Chỉnh Sửa Danh Mục";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-card">
+    <h2 class="admin-card-title">CẬP NHẬT DANH MỤC</h2>
+    <p class="admin-card-subtitle">Chỉnh sửa thông tin nhóm công thức Đầu Bếp Nhí</p>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 24px;" />
+
+    @using (Html.BeginForm())
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.CategoryId)
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Tên danh mục</label>
+            @Html.TextBoxFor(model => model.CategoryName, new { @class = "form-input-custom", placeholder = "Ví dụ: Ăn Sáng & Món Nhanh" })
+            @Html.ValidationMessageFor(model => model.CategoryName, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Mã màu nhận diện (Hex Color)</label>
+            @Html.TextBoxFor(model => model.ThemeColor, new { @class = "form-input-custom", placeholder = "Ví dụ: #F97316" })
+            @Html.ValidationMessageFor(model => model.ThemeColor, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Thứ tự hiển thị</label>
+            @Html.TextBoxFor(model => model.DisplayOrder, new { @class = "form-input-custom", type = "number", min = "1", placeholder = "Ví dụ: 5" })
+
+            @* Thay đổi dòng dưới đây để in thông báo tiếng Việt *@
+            @Html.ValidationMessageFor(model => model.DisplayOrder, "Vui lòng nhập thứ tự hiển thị.", new { @class = "text-danger", style = "color: #E53E3E; font-size: 12px; margin-top: 4px; display: block;" })
+        </div>
+
+        <div class="form-actions-custom">
+            <input type="submit" value="Lưu Thay Đổi" class="btn-submit-custom" />
+            @Html.ActionLink("Hủy bỏ", "Index", null, new { @class = "btn-cancel-custom" })
+        </div>
+    }
+</div>

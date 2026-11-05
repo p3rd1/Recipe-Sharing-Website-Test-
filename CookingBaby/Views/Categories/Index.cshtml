@@ -1,0 +1,53 @@
+﻿@model IEnumerable<CookingBaby.Models.Category>
+
+@{
+    ViewBag.Title = "Quản Lý Danh Mục";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-toolbar">
+    <div>
+        <h2 class="admin-title">QUẢN LÝ DANH MỤC ĐẦU BẾP NHÍ</h2>
+        <p class="admin-subtitle">Danh sách 4 nhóm công thức hiển thị trên thanh tab trang chủ</p>
+    </div>
+    @Html.ActionLink("+ Thêm Danh Mục Mới", "Create", null, new { @class = "btn-add-category" })
+</div>
+
+<div class="admin-table-wrap">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Thứ Tự</th>
+                <th>Tên Danh Mục</th>
+                <th>Màu Nhận Diện</th>
+                <th style="text-align: right;">Thao Tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td class="order-badge">
+                        #@item.DisplayOrder
+                    </td>
+                    <td class="cat-title-cell">
+                        @item.CategoryName
+                    </td>
+                    <td>
+                        <span class="color-dot" style="background-color: @item.ThemeColor;"></span>
+                        <code class="color-tag">@item.ThemeColor</code>
+                    </td>
+                    <td class="cell-actions">
+                        @Html.ActionLink("Sửa", "Edit", new { id = item.CategoryId }, new { @class = "act-edit" })
+                        @Html.ActionLink("Chi tiết", "Details", new { id = item.CategoryId }, new { @class = "act-details" })
+                        @Html.ActionLink("Xóa", "Delete", new { id = item.CategoryId }, new { @class = "act-delete" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<a href="@Url.Action("Index", "Home")" class="back-link">
+    ← Quay về Trang Chủ Khám Phá Công Thức
+</a>
