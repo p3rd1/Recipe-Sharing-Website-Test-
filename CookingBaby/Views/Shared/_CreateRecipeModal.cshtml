@@ -1,7 +1,7 @@
-﻿@* Views/Shared/_CreateRecipeModal.cshtml *@
+@* Views/Shared/_CreateRecipeModal.cshtml *@
 <div id="createRecipeModal" class="modal-overlay">
     <div class="modal-window">
-        <button type="button" class="modal-close-btn" onclick="document.getElementById('createRecipeModal').style.display='none'">✕</button>
+        <button type="button" class="modal-close-btn" onclick="closeCreateModal()">✕</button>
 
         <h3 class="modal-header-title">Đăng Chia Sẻ Công Thức Mới</h3>
         <p class="modal-header-desc">Công thức của bạn sẽ được gửi tới Ban Quản Trị duyệt trước khi công khai</p>
@@ -29,7 +29,14 @@
 
             <div class="form-group-custom">
                 <label class="form-label-custom">Hình ảnh đại diện (.jpg, .png, .webp)</label>
-                <input type="file" name="ImageFile" id="createImageFile" accept=".jpg,.jpeg,.png,.webp" class="form-input-custom" style="padding-top: 7px;" />
+                <input type="file" name="ImageFile" id="createImageFile" accept=".jpg,.jpeg,.png,.webp" class="form-input-custom" style="padding-top: 7px;" onchange="previewCreateModalImage(this)" />
+                <div id="createPreviewBox" style="display:none; margin-top: 10px; padding: 10px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; align-items: center; gap: 12px;">
+                    <img id="createImagePreview" src="" alt="Xem trước" style="width: 100px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid #CBD5E1;" />
+                    <div>
+                        <span style="font-size: 12px; font-weight: 700; color: #2D3748; display: block;">Xem trước ảnh món ăn</span>
+                        <small style="font-size: 11px; color: #718096;">Ảnh sẽ được lưu tự động vào thư mục an toàn trên server.</small>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group-custom">
@@ -54,7 +61,7 @@
 
             <div class="form-actions-custom">
                 <button type="submit" class="btn-submit-custom">Gửi Duyệt Công Thức</button>
-                <button type="button" onclick="document.getElementById('createRecipeModal').style.display='none'" style="background: none; border: none; color: #718096; font-weight: 700; cursor: pointer;">Hủy bỏ</button>
+                <button type="button" class="btn-cancel-custom" onclick="closeCreateModal()">Hủy bỏ</button>
             </div>
         }
     </div>

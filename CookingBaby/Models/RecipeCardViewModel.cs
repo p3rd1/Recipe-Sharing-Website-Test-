@@ -8,6 +8,7 @@ namespace CookingBaby.Models
     public class RecipeCardViewModel
     {
         public int RecipeId { get; set; }
+        public int AuthorId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public short CookTime { get; set; }

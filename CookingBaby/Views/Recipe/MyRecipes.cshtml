@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
+@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
 @{
     ViewBag.Title = "Quản Lý Cá Nhân - Công Thức Của Tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -10,7 +10,7 @@
         <p class="admin-subtitle">Quản lý danh sách các công thức do bạn đóng góp cho cộng đồng Cooking Baby</p>
     </div>
     <!-- Nút mở Modal trực tiếp, đồng bộ với Header -->
-    <a href="javascript:void(0)" onclick="document.getElementById('createRecipeModal').style.display='flex'" class="btn-add-category" style="cursor: pointer; text-decoration: none;">
+    <a href="javascript:void(0)" onclick="openCreateModal()" class="btn-add-category" style="cursor: pointer; text-decoration: none;">
         + Đăng Công Thức Mới
     </a>
 </div>
@@ -36,9 +36,18 @@
                 <span class="status-pill status-pending">⏳ Chờ duyệt</span>
             }
 
+            @{
+                string imgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                    ? Url.Content("~/Content/images/pancake.jpg")
+                    : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                        ? Url.Content(item.ImageUrl)
+                        : (item.ImageUrl.StartsWith("Uploads/"))
+                            ? Url.Content("~/" + item.ImageUrl)
+                            : Url.Content("~/Content/images/" + item.ImageUrl);
+            }
             <div class="card-img-wrap">
                 <span class="time-badge">⏱ @item.CookTime phút</span>
-                <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+                <img src="@imgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
             </div>
 
             <div class="card-content">
@@ -79,11 +88,11 @@
                            onclick="event.stopPropagation();">Sửa</a>
 
                         <!-- Nút Xóa (Có hộp thoại xác nhận) -->
-                        <a href="@Url.Action("DeleteMyRecipe", "Recipe", new { id = item.RecipeId })"
-                           class="btn-pill-action btn-pill-del"
-                           onclick="event.stopPropagation(); return confirm('Bạn có chắc chắn muốn xóa công thức: @item.Title?');">
-                            Xóa
-                        </a>
+                        @using (Html.BeginForm("DeleteMyRecipe", "Recipe", new { id = item.RecipeId, area = "" }, FormMethod.Post, new { style = "display:inline", onclick = "event.stopPropagation();" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-pill-action btn-pill-del" onclick="event.stopPropagation(); return confirm('Bạn chắc chắn muốn xóa công thức này?');">Xóa</button>
+                        }
                     </div>
                 </div>
             </div>

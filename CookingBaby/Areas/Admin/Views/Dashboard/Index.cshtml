@@ -1,62 +1,120 @@
 @model CookingBaby.Areas.Admin.Models.AdminDashboardViewModel
 @{
-    ViewBag.Title = "Duyệt Bài (Admin)";
+    ViewBag.Title = "Bảng Điều Khiển & Duyệt Bài (Admin)";
     ViewBag.IsAdminPage = true;
     ViewBag.ActiveTab = "Admin";
     var fallbackImage = Url.Content("~/Content/images/pancake.jpg");
-
 }
 <meta charset="utf-8" />
-<div class="admin-dashboard-head">
+
+<div class="admin-dashboard-head" style="margin-bottom: 24px;">
     <div>
         <div class="admin-kicker">ADMIN CONTROL PANEL</div>
-        <h1 class="admin-dashboard-title">Duyệt Bài (Admin)</h1>
-        <p class="admin-dashboard-subtitle">Theo dõi trạng thái và quản lý các công thức được gửi lên Cooking Baby.</p>
+        <h1 class="admin-dashboard-title">Bảng Điều Khiển Quản Trị & Duyệt Bài</h1>
+        <p class="admin-dashboard-subtitle">Theo dõi thống kê số liệu động từ database và kiểm duyệt công thức trên Cooking Baby.</p>
     </div>
 </div>
 
 @if (TempData["AdminSuccess"] != null)
 {
-    <div class="admin-alert admin-alert-success">@TempData["AdminSuccess"]</div>
+    <div class="admin-alert admin-alert-success" style="padding: 12px 18px; border-radius: 10px; margin-bottom: 18px; background: #DEF7EC; color: #03543F; font-weight: 600;">
+        ✓ @TempData["AdminSuccess"]
+    </div>
 }
 @if (TempData["AdminError"] != null)
 {
-    <div class="admin-alert admin-alert-error">@TempData["AdminError"]</div>
+    <div class="admin-alert admin-alert-error" style="padding: 12px 18px; border-radius: 10px; margin-bottom: 18px; background: #FDE8E8; color: #9B1C1C; font-weight: 600;">
+        ⚠️ @TempData["AdminError"]
+    </div>
 }
 
-<div class="admin-stat-grid">
-    <div class="admin-stat-card stat-visible">
-        <div class="admin-stat-icon">✓</div>
+<!-- 1. Grid 6 Thẻ Thống Kê Tổng Quan -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    <div class="admin-stat-card stat-visible" style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div class="admin-stat-icon" style="font-size:24px; width:46px; height:46px; border-radius:12px; background:#DEF7EC; color:#0E9F6E; display:flex; align-items:center; justify-content:center;">✓</div>
         <div>
-            <div class="admin-stat-label">Đang hiển thị</div>
-            <div class="admin-stat-number">@Model.VisibleCount</div>
-            <div class="admin-stat-note">Công thức đã duyệt</div>
+            <div class="admin-stat-label" style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Đã duyệt</div>
+            <div class="admin-stat-number" style="font-size:24px; font-weight:900; color:#1A202C;">@Model.VisibleCount</div>
+            <div class="admin-stat-note" style="font-size:11px; color:#A0AEC0;">Đang công khai</div>
         </div>
     </div>
 
-    <div class="admin-stat-card stat-pending">
-        <div class="admin-stat-icon">⏳</div>
+    <div class="admin-stat-card stat-pending" style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div class="admin-stat-icon" style="font-size:22px; width:46px; height:46px; border-radius:12px; background:#FEF08A; color:#CA8A04; display:flex; align-items:center; justify-content:center;">⏳</div>
         <div>
-            <div class="admin-stat-label">Chờ duyệt</div>
-            <div class="admin-stat-number">@Model.PendingCount</div>
-            <div class="admin-stat-note">Cần Admin kiểm tra</div>
+            <div class="admin-stat-label" style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Chờ duyệt</div>
+            <div class="admin-stat-number" style="font-size:24px; font-weight:900; color:#CA8A04;">@Model.PendingCount</div>
+            <div class="admin-stat-note" style="font-size:11px; color:#A0AEC0;">Cần kiểm tra</div>
         </div>
     </div>
 
-    <div class="admin-stat-card stat-hidden">
-        <div class="admin-stat-icon">⊘</div>
+    <div class="admin-stat-card stat-hidden" style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div class="admin-stat-icon" style="font-size:22px; width:46px; height:46px; border-radius:12px; background:#FDE8E8; color:#E02424; display:flex; align-items:center; justify-content:center;">⊘</div>
         <div>
-            <div class="admin-stat-label">Đã ẩn</div>
-            <div class="admin-stat-number">@Model.HiddenCount</div>
-            <div class="admin-stat-note">Không hiển thị công khai</div>
+            <div class="admin-stat-label" style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Đã ẩn</div>
+            <div class="admin-stat-number" style="font-size:24px; font-weight:900; color:#E02424;">@Model.HiddenCount</div>
+            <div class="admin-stat-note" style="font-size:11px; color:#A0AEC0;">Tạm khóa bài</div>
+        </div>
+    </div>
+
+    <div style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div style="font-size:22px; width:46px; height:46px; border-radius:12px; background:#E1EFFE; color:#1C64F2; display:flex; align-items:center; justify-content:center;">👥</div>
+        <div>
+            <div style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Thành viên</div>
+            <div style="font-size:24px; font-weight:900; color:#1A202C;">@Model.TotalUsers</div>
+            <div style="font-size:11px; color:#A0AEC0;">Người dùng</div>
+        </div>
+    </div>
+
+    <div style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div style="font-size:22px; width:46px; height:46px; border-radius:12px; background:#EDEBFE; color:#7E3AF2; display:flex; align-items:center; justify-content:center;">💬</div>
+        <div>
+            <div style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Bình luận</div>
+            <div style="font-size:24px; font-weight:900; color:#1A202C;">@Model.TotalComments</div>
+            <div style="font-size:11px; color:#A0AEC0;">Lượt trao đổi</div>
+        </div>
+    </div>
+
+    <div style="background:#FFF; padding:18px; border-radius:14px; border:1px solid #E2E8F0; display:flex; align-items:center; gap:14px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+        <div style="font-size:22px; width:46px; height:46px; border-radius:12px; background:#FDF2F8; color:#D946EF; display:flex; align-items:center; justify-content:center;">⭐</div>
+        <div>
+            <div style="font-size:12px; color:#718096; font-weight:700; text-transform:uppercase;">Đánh giá</div>
+            <div style="font-size:24px; font-weight:900; color:#1A202C;">@Model.TotalRatings</div>
+            <div style="font-size:11px; color:#A0AEC0;">Số lượt chấm sao</div>
         </div>
     </div>
 </div>
 
-<div class="admin-list-header">
+<!-- 2. Khung Biểu Đồ Trực Quan (Chart.js) -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
+    <!-- Biểu đồ 1: Phân bố theo danh mục -->
+    <div style="background: #FFF; border-radius: 16px; border: 1px solid #E2E8F0; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #2D3748;">📊 Phân Bố Theo Danh Mục</h3>
+            <span style="font-size: 11px; color: #A0AEC0; font-weight: 600;">Tất cả món</span>
+        </div>
+        <div style="height: 240px; position: relative; display: flex; justify-content: center; align-items: center;">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Biểu đồ 2: Xu hướng đăng bài theo tháng -->
+    <div style="background: #FFF; border-radius: 16px; border: 1px solid #E2E8F0; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #2D3748;">📈 Xu Hướng Đăng Bài (6 Tháng Gần Nhất)</h3>
+            <span style="font-size: 11px; color: #A0AEC0; font-weight: 600;">Số lượng món</span>
+        </div>
+        <div style="height: 240px; position: relative;">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Bảng Kiểm Duyệt Công Thức -->
+<div class="admin-list-header" style="margin-bottom: 14px;">
     <div>
-        <h2>Danh sách món ăn</h2>
-        <p>Tổng cộng @Model.Recipes.Count công thức trong hệ thống</p>
+        <h2 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 900;">Danh Sách Quản Lý Công Thức</h2>
+        <p style="margin: 0; font-size: 13px; color: #718096;">Tổng cộng @Model.Recipes.Count công thức trong cơ sở dữ liệu</p>
     </div>
 </div>
 
@@ -76,15 +134,22 @@
             @if (Model.Recipes.Count == 0)
             {
                 <tr>
-                    <td colspan="6" class="admin-empty-row">Chưa có công thức nào trong hệ thống.</td>
+                    <td colspan="6" class="admin-empty-row" style="text-align:center; padding:30px; color:#A0AEC0;">
+                        Chưa có công thức nào trong hệ thống.
+                    </td>
                 </tr>
             }
             else
             {
                 foreach (var item in Model.Recipes)
                 {
-                    var imageFile = string.IsNullOrWhiteSpace(item.ImageUrl) ? "pancake.jpg" : item.ImageUrl;
-                    var imagePath = Url.Content("~/Content/images/" + imageFile);
+                    string imagePath = string.IsNullOrWhiteSpace(item.ImageUrl)
+                        ? fallbackImage
+                        : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                            ? Url.Content(item.ImageUrl)
+                            : (item.ImageUrl.StartsWith("Uploads/"))
+                                ? Url.Content("~/" + item.ImageUrl)
+                                : Url.Content("~/Content/images/" + item.ImageUrl);
                     <tr>
                         <td>
                             <div class="admin-recipe-cell">
@@ -144,3 +209,75 @@
         </tbody>
     </table>
 </div>
+
+<!-- Tích hợp Chart.js CDN và Khởi Tạo Biểu Đồ Động -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // 1. Biểu đồ Danh mục
+        var catLabels = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.CategoryChartLabels));
+        var catData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.CategoryChartData));
+
+        var ctxCat = document.getElementById('categoryChart');
+        if (ctxCat) {
+            new Chart(ctxCat.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catData,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 14, font: { size: 12 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Biểu đồ Xu hướng theo tháng
+        var monLabels = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.MonthlyChartLabels));
+        var monData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.MonthlyChartData));
+
+        var ctxMon = document.getElementById('monthlyChart');
+        if (ctxMon) {
+            new Chart(ctxMon.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: monLabels,
+                    datasets: [{
+                        label: 'Số công thức đăng',
+                        data: monData,
+                        backgroundColor: '#FF5A1F',
+                        borderRadius: 6,
+                        barThickness: 28
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    });
+</script>

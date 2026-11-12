@@ -132,20 +132,34 @@ else
 
             <article class="recipe-card" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
 
+                @{
+                    string homeImgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                        ? Url.Content("~/Content/images/pancake.jpg")
+                        : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                            ? Url.Content(item.ImageUrl)
+                            : (item.ImageUrl.StartsWith("Uploads/"))
+                                ? Url.Content("~/" + item.ImageUrl)
+                                : Url.Content("~/Content/images/" + item.ImageUrl);
+                }
                 <div class="card-img-wrap" style="position: relative;">
                     <!-- Badge thời gian -->
                     <span class="time-badge">⏱ @item.CookTime phút</span>
 
                     <!-- Ảnh đại diện món ăn -->
-                    <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+                    <img src="@homeImgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
 
                     <!-- Nút Trái Tim nổi góc trên bên phải ảnh -->
-                    <button type="button"
-                            class="btn-heart-toggle @(isSaved ? "saved" : "")"
-                            title="@(isSaved ? "Bỏ lưu món này" : "Lưu món này")"
-                            onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, false);">
-                        ♥
-                    </button>
+                    @if (Request.IsAuthenticated && Session["UserID"] is int)
+                    {
+                        <button type="button" class="btn-heart-toggle @(isSaved ? "saved" : "")"
+                                title="@(isSaved ? "Bỏ lưu món này" : "Lưu món này")"
+                                onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, false);">♥</button>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Login", "Account", new { area = "" })"
+                           class="btn-heart-toggle" title="Đăng nhập để lưu món" onclick="event.stopPropagation();">♡</a>
+                    }
                 </div>
 
                 <div class="card-content">

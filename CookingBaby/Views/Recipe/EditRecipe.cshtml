@@ -2,18 +2,26 @@
 @{
     ViewBag.Title = "Chỉnh Sửa Công Thức";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string currentImgUrl = string.IsNullOrWhiteSpace(Model.ImageUrl)
+        ? Url.Content("~/Content/images/pancake.jpg")
+        : (Model.ImageUrl.StartsWith("/") || Model.ImageUrl.StartsWith("~"))
+            ? Url.Content(Model.ImageUrl)
+            : (Model.ImageUrl.StartsWith("Uploads/"))
+                ? Url.Content("~/" + Model.ImageUrl)
+                : Url.Content("~/Content/images/" + Model.ImageUrl);
 }
 
-<div class="admin-card" style="position: relative;">
+<div class="admin-card" style="position: relative; max-width: 860px; margin: 30px auto; background: #fff; padding: 32px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #E2E8F0;">
     <!-- Nút [X] quay về Quản Lý Cá Nhân -->
     <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })"
        class="modal-close-btn"
-       style="text-decoration: none; top: 24px; right: 24px;"
+       style="text-decoration: none; top: 24px; right: 24px; position: absolute; font-size: 20px; color: #A0AEC0;"
        title="Đóng / Quay lại">✕</a>
 
-    <div style="margin-bottom: 20px; padding-right: 40px;">
-        <h2 class="admin-card-title">Chỉnh Sửa Công Thức</h2>
-        <p class="admin-card-subtitle">Cập nhật thông tin công thức món ăn của bạn</p>
+    <div style="margin-bottom: 24px; padding-right: 40px;">
+        <h2 class="admin-card-title" style="margin: 0 0 6px 0; font-size: 24px; font-weight: 900; color: #2D3748;">Chỉnh Sửa Công Thức</h2>
+        <p class="admin-card-subtitle" style="margin: 0; font-size: 14px; color: #718096;">Cập nhật thông tin công thức món ăn của bạn (nguyên liệu, các bước và hình ảnh)</p>
     </div>
 
     @using (Html.BeginForm("EditRecipe", "Recipe", FormMethod.Post, new { enctype = "multipart/form-data", id = "editRecipeForm", onsubmit = "return validateEditForm();" }))
@@ -21,42 +29,53 @@
         @Html.AntiForgeryToken()
         @Html.HiddenFor(model => model.RecipeId)
 
-        @Html.ValidationSummary(true, "", new { @style = "color: #dc2626; background: #fef2f2; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px;" })
+        @Html.ValidationSummary(true, "", new { @style = "color: #dc2626; background: #fef2f2; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; border: 1px solid #fecaca;" })
 
         <div id="editClientError" style="display:none; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; font-weight: 500;"></div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div class="form-group-custom">
-                <label class="form-label-custom">Tên món ăn <span style="color:red">*</span></label>
+                <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Tên món ăn <span style="color:red">*</span></label>
                 @Html.TextBoxFor(model => model.Title, new { @class = "form-input-custom", id = "editTitle", maxlength = "200", placeholder = "Nhập tên món ăn...", required = "required" })
                 @Html.ValidationMessageFor(model => model.Title, "", new { @style = "color:red; font-size:12px;" })
             </div>
             <div class="form-group-custom">
-                <label class="form-label-custom">Thời gian nấu (phút) <span style="color:red">*</span></label>
+                <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Thời gian nấu (phút) <span style="color:red">*</span></label>
                 @Html.TextBoxFor(model => model.CookTime, new { @class = "form-input-custom", id = "editCookTime", type = "number", min = "1", max = "1440", required = "required" })
                 @Html.ValidationMessageFor(model => model.CookTime, "", new { @style = "color:red; font-size:12px;" })
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div class="form-group-custom">
-                <label class="form-label-custom">Danh mục Đầu Bếp Nhí <span style="color:red">*</span></label>
+                <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Danh mục ẩm thực <span style="color:red">*</span></label>
                 @Html.DropDownList("CategoryId", null, htmlAttributes: new { @class = "form-input-custom", required = "required" })
             </div>
             <div class="form-group-custom">
-                <label class="form-label-custom">Thay đổi ảnh đại diện (.jpg, .png, .webp)</label>
-                <input type="file" name="ImageFile" id="editImageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" />
+                <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Đổi ảnh đại diện (.jpg, .png, .webp)</label>
+                <input type="file" name="ImageFile" id="editImageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" onchange="previewSelectedImage(this, 'editImagePreview')" />
             </div>
         </div>
 
-        <div class="form-group-custom" style="margin-bottom: 14px;">
-            <label class="form-label-custom">Mô tả ngắn món ăn <span style="color:red">*</span></label>
+        <!-- Khung Preview Ảnh Trực Quan -->
+        <div style="margin-bottom: 18px; padding: 12px 16px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; align-items: center; gap: 16px;">
+            <img id="editImagePreview" src="@currentImgUrl" alt="Preview ảnh"
+                 style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #CBD5E1; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                 onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+            <div>
+                <strong style="font-size: 13px; color: #2D3748; display: block;">Ảnh hiện tại / Xem trước</strong>
+                <small style="color: #718096; font-size: 11.5px;">Nếu chọn file mới, ảnh sẽ được đổi tên bằng mã Guid an toàn và lưu vào thư mục <code>/Uploads/Recipes/</code> trên Server.</small>
+            </div>
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 16px;">
+            <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Mô tả ngắn món ăn <span style="color:red">*</span></label>
             @Html.TextAreaFor(model => model.Description, new { @class = "form-input-custom", id = "editDescription", rows = "2", maxlength = "500", placeholder = "Mô tả hương vị hấp dẫn của món ăn...", required = "required" })
             @Html.ValidationMessageFor(model => model.Description, "", new { @style = "color:red; font-size:12px;" })
         </div>
 
-        <div class="form-group-custom" style="margin-bottom: 14px;">
-            <label class="form-label-custom">Nguyên liệu (Cách nhau bằng dấu phẩy) <span style="color:red">*</span></label>
+        <div class="form-group-custom" style="margin-bottom: 16px;">
+            <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Nguyên liệu (Cách nhau bằng dấu phẩy) <span style="color:red">*</span></label>
             <input type="text" name="IngredientsList" id="editIngredients" class="form-input-custom" value="@ViewBag.IngredientsString" placeholder="VD: Trứng gà, Bơ lạt, Sữa tươi" required />
             @if (ViewBag.IngredientsError != null)
             {
@@ -64,9 +83,9 @@
             }
         </div>
 
-        <div class="form-group-custom" style="margin-bottom: 14px;">
-            <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span style="color:red">*</span></label>
-            <textarea name="Instructions" id="editInstructions" class="form-input-custom" rows="5" placeholder="Bước 1: Sơ chế sạch nguyên liệu.&#10;Bước 2: Nấu chín vừa tới.&#10;Bước 3: Trình bày ra đĩa." required>@ViewBag.InstructionsString</textarea>
+        <div class="form-group-custom" style="margin-bottom: 20px;">
+            <label class="form-label-custom" style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; color: #2D3748;">Các bước thực hiện (Mỗi bước 1 dòng) <span style="color:red">*</span></label>
+            <textarea name="Instructions" id="editInstructions" class="form-input-custom" rows="5" placeholder="Sơ chế sạch nguyên liệu.&#10;Nấu chín vừa tới.&#10;Trình bày ra đĩa thưởng thức." required>@ViewBag.InstructionsString</textarea>
             @if (ViewBag.InstructionsError != null)
             {
                 <span style="color:red; font-size:12px;">@ViewBag.InstructionsError</span>
@@ -74,13 +93,36 @@
         </div>
 
         <div class="form-actions-custom" style="display: flex; align-items: center; gap: 16px; margin-top: 24px;">
-            <button type="submit" class="btn-submit-custom">Lưu Thay Đổi</button>
-            <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })" class="btn-cancel-custom">Hủy bỏ</a>
+            <button type="submit" class="btn-submit-custom" style="background: #FF5A1F; color: #fff; padding: 10px 24px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer;">Lưu Thay Đổi</button>
+            <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })" class="btn-cancel-custom" style="padding: 10px 20px; border-radius: 10px; text-decoration: none; color: #718096; background: #EDF2F7; font-weight: 600;">Hủy bỏ</a>
         </div>
     }
 </div>
 
 <script>
+    // Hàm preview ảnh trước khi submit
+    function previewSelectedImage(input, previewId) {
+        if (input.files && input.files[0]) {
+            var file = input.files[0];
+            var ext = file.name.split('.').pop().toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'webp', 'gif'].indexOf(ext) === -1) {
+                alert('Chỉ chấp nhận các định dạng ảnh: .jpg, .jpeg, .png, .webp, .gif');
+                input.value = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Dung lượng ảnh không được vượt quá 5MB.');
+                input.value = '';
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById(previewId).src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
     function validateEditForm() {
         var title = document.getElementById("editTitle").value.trim();
         var cookTime = parseInt(document.getElementById("editCookTime").value, 10);
@@ -101,11 +143,11 @@
         if (desc.length < 10) {
             errors.push("Mô tả ngắn món ăn cần tối thiểu 10 ký tự.");
         }
-        var ingItems = ings.split(/[,;]/).map(s => s.trim()).filter(s => s.length > 0);
+        var ingItems = ings.split(/[,;]/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
         if (ingItems.length === 0) {
             errors.push("Vui lòng nhập ít nhất 1 nguyên liệu hợp lệ.");
         }
-        var stepItems = steps.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+        var stepItems = steps.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
         if (stepItems.length === 0) {
             errors.push("Vui lòng nhập ít nhất 1 bước thực hiện.");
         }

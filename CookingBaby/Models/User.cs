@@ -32,6 +32,10 @@ namespace CookingBaby.Models
         public string Role { get; set; }
         public bool IsActive { get; set; }
         public System.DateTime CreatedAt { get; set; }
+        public Nullable<System.DateTime> LastLoginAt { get; set; }
+        public int FailedLoginCount { get; set; }
+        public Nullable<System.DateTime> LockoutEnd { get; set; }
+        public Nullable<System.DateTime> PasswordChangedAt { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Comment> Comments { get; set; }

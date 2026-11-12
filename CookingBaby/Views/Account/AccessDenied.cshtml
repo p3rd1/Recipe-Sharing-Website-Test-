@@ -1,0 +1,11 @@
+﻿@{
+    ViewBag.Title = "Không có quyền truy cập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="auth-page">
+    <div class="auth-card">
+        <h2>Không có quyền truy cập</h2>
+        <p class="auth-subtitle">Tài khoản hiện tại không được phép mở chức năng này.</p>
+        <a class="btn-brand auth-submit" href="@Url.Action("Index", "Home", new { area = "" })" style="display:block;text-align:center;text-decoration:none;">Về trang chủ</a>
+    </div>
+</div>

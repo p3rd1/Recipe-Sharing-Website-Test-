@@ -1,4 +1,4 @@
-﻿@* Views/Shared/_RecipeDetailModal.cshtml *@
+@* Views/Shared/_RecipeDetailModal.cshtml *@
 <div id="recipeDetailModal" class="modal-overlay">
     <div class="modal-window" style="max-width: 820px; padding: 28px 32px;">
         <!-- Nút X đóng Modal -->
@@ -48,20 +48,28 @@
 
                 <!-- Nút lưu & Ghi chú quyền tác giả -->
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <button type="button"
-                            id="modalToggleSaveBtn"
-                            class="btn-create-recipe"
-                            style="padding: 6px 14px; font-size: 12px; cursor: pointer; background: #FF5A1F; border: none;"
-                            onclick="toggleSavedFromModal()">
-                        ♡ Lưu vào sổ tay
-                    </button>
+                    @if (Request.IsAuthenticated && Session["UserID"] is int)
+                    {
+                        <button type="button" id="modalToggleSaveBtn" class="btn-create-recipe"
+                                style="padding:6px 14px;font-size:12px;cursor:pointer;background:#FF5A1F;border:none;"
+                                onclick="toggleSavedFromModal()">♡ Lưu vào sổ tay</button>
+                    }
+                    else
+                    {
+                        <a class="btn-create-recipe" style="padding:6px 14px;font-size:12px;text-decoration:none;" href="@Url.Action("Login", "Account", new { area = "" })">Đăng nhập để lưu</a>
+                    }
 
                     <!-- Khu vực phân quyền: Thông báo hoặc Nút Sửa/Xóa của tác giả -->
                     <div>
                         <small id="modalAuthorPermission" style="color: #A0AEC0; font-size: 11px;">Chỉ tác giả mới có quyền sửa/xóa</small>
                         <div id="modalAuthorActions" style="display: none; gap: 6px; align-items: center;">
                             <a id="modalEditBtn" href="#" class="btn-pill-action btn-pill-edit" style="padding: 3px 10px; font-size: 11.5px; text-decoration: none;">✏ Sửa</a>
-                            <a id="modalDeleteBtn" href="#" class="btn-pill-action btn-pill-del" onclick="return confirm('Bạn có chắc chắn muốn xóa công thức này không?');" style="padding: 3px 10px; font-size: 11.5px; text-decoration: none;">🗑 Xóa</a>
+                            @using (Html.BeginForm("DeleteMyRecipe", "Recipe", new { area = "" }, FormMethod.Post, new { id = "modalDeleteForm", style = "display:inline", onsubmit = "return confirm('Bạn chắc chắn muốn xóa công thức này?');" }))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" id="modalDeleteId" />
+                                <button type="submit" id="modalDeleteBtn" class="btn-pill-action btn-pill-del" style="padding: 3px 10px; font-size: 11.5px;">🗑 Xóa</button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -80,18 +88,7 @@
                 </div>
 
                 <div id="modalDetailIngredients" style="display: flex; flex-direction: column; gap: 8px;">
-                    <label style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 12px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 9px; cursor: pointer;">
-                        <input type="checkbox" style="cursor: pointer;" /> <span>Ức gà</span>
-                    </label>
-                    <label style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 12px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 9px; cursor: pointer;">
-                        <input type="checkbox" style="cursor: pointer;" /> <span>Cà chua</span>
-                    </label>
-                    <label style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 12px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 9px; cursor: pointer;">
-                        <input type="checkbox" style="cursor: pointer;" /> <span>Trứng gà</span>
-                    </label>
-                    <label style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 12px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 9px; cursor: pointer;">
-                        <input type="checkbox" style="cursor: pointer;" /> <span>Xà lách</span>
-                    </label>
+                    <p style="font-size:13px; color:#718096;">Đang tải nguyên liệu...</p>
                 </div>
             </div>
 
@@ -100,20 +97,7 @@
                 <h4 style="margin: 0 0 12px 0; font-size: 14.5px; font-weight: 800; color: #2D3748;">🍳 Các bước thực hiện</h4>
 
                 <div id="modalDetailSteps" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <span style="background: #FF7A00; color: #FFF; font-size: 11px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">01</span>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #4A5568; line-height: 1.5;">Ướp ức gà với chút muối hồng, tiêu đen và dầu olive trong 10 phút.</p>
-                    </div>
-
-                    <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <span style="background: #FF7A00; color: #FFF; font-size: 11px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">02</span>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #4A5568; line-height: 1.5;">Áp chảo lửa vừa mỗi mặt 4 phút, tắt bếp đậy nắp ủ thêm 3 phút rồi thái lát.</p>
-                    </div>
-
-                    <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <span style="background: #FF7A00; color: #FFF; font-size: 11px; font-weight: 800; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">03</span>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #4A5568; line-height: 1.5;">Trộn rau xà lách, cà chua bi bổ đôi, trứng luộc cùng sốt mè rang và xếp gà lên trên.</p>
-                    </div>
+                    <p style="font-size:13px; color:#718096;">Đang tải các bước...</p>
                 </div>
             </div>
         </div>
@@ -129,35 +113,42 @@
             <input type="hidden" id="reviewRecipeId" value="" />
             <input type="hidden" id="selectedRating" value="0" />
 
-            <!-- Chọn số sao kèm nhãn đánh giá -->
-            <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 13px; font-weight: 700; color: #4A5568;">Chọn số sao của bạn:</span>
-                <div class="rating-stars" style="font-size: 20px;">
-                    <span class="rating-star" data-value="1">★</span>
-                    <span class="rating-star" data-value="2">★</span>
-                    <span class="rating-star" data-value="3">★</span>
-                    <span class="rating-star" data-value="4">★</span>
-                    <span class="rating-star" data-value="5">★</span>
+            @if (Request.IsAuthenticated && Session["UserID"] is int)
+            {
+                <!-- Chọn số sao kèm nhãn đánh giá -->
+                <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 13px; font-weight: 700; color: #4A5568;">Chọn số sao của bạn:</span>
+                    <div class="rating-stars" style="font-size: 20px;">
+                        <span class="rating-star" data-value="1">★</span>
+                        <span class="rating-star" data-value="2">★</span>
+                        <span class="rating-star" data-value="3">★</span>
+                        <span class="rating-star" data-value="4">★</span>
+                        <span class="rating-star" data-value="5">★</span>
+                    </div>
+                    <span id="starRatingLabel" style="font-size: 12px; font-weight: 700; color: #DD6B20;">(Chưa chọn sao)</span>
                 </div>
-                <span id="starRatingLabel" style="font-size: 12px; font-weight: 700; color: #DD6B20;">(Chưa chọn sao)</span>
-            </div>
-
-            <!-- Ô nhập bình luận + Nút gửi -->
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="text"
-                       id="reviewContent"
-                       class="form-input-custom"
-                       style="margin-bottom: 0;"
-                       placeholder="Chia sẻ cảm nhận của bạn sau khi nấu thử..." />
-
-                <button type="button"
-                        id="btnSubmitReview"
-                        class="btn-create-recipe"
-                        style="white-space: nowrap; border: none; cursor: pointer; padding: 10px 20px; font-size: 13px;"
-                        onclick="submitReview()">
-                    Gửi Đánh Giá
-                </button>
-            </div>
+    
+                <!-- Ô nhập bình luận + Nút gửi -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text"
+                           id="reviewContent"
+                           class="form-input-custom"
+                           style="margin-bottom: 0;"
+                           placeholder="Chia sẻ cảm nhận của bạn sau khi nấu thử..." />
+    
+                    <button type="button"
+                            id="btnSubmitReview"
+                            class="btn-create-recipe"
+                            style="white-space: nowrap; border: none; cursor: pointer; padding: 10px 20px; font-size: 13px;"
+                            onclick="submitReview()">
+                        Gửi Đánh Giá
+                    </button>
+                </div>
+            }
+            else
+            {
+                <p class="auth-bottom-link"><a href="@Url.Action("Login", "Account", new { area = "" })">Đăng nhập</a> để đánh giá hoặc bình luận công thức.</p>
+            }
 
             <!-- Danh sách các bài đánh giá trước đó -->
             <div class="review-list-section" style="margin-top: 20px;">

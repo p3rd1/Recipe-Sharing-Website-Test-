@@ -1,0 +1,54 @@
+@model CookingBaby.Models.LoginViewModel
+
+@{
+    ViewBag.Title = "Đăng nhập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div style="text-align: center; margin-bottom: 12px;">
+            <span style="font-size: 36px;">🍳</span>
+        </div>
+        <h2>Đăng Nhập</h2>
+        <p class="auth-subtitle">
+            Chào mừng bạn quay lại với căn bếp vui của Cooking Baby!
+        </p>
+
+        @* Hiển thị thông báo thành công sau khi đăng ký *@
+        @if (TempData["SignUpSuccess"] != null)
+        {
+            <div class="cart-message cart-message-success">
+                @TempData["SignUpSuccess"]
+            </div>
+        }
+
+        @using (Html.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, FormMethod.Post, null))
+        {
+            @Html.AntiForgeryToken()
+
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+            <div class="auth-field">
+                @Html.LabelFor(m => m.UserName, "Tên đăng nhập")
+                @Html.TextBoxFor(m => m.UserName, new { @class = "form-control-modern", placeholder = "Nhập tên tài khoản..." })
+                @Html.ValidationMessageFor(m => m.UserName, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="auth-field">
+                @Html.LabelFor(m => m.Password, "Mật khẩu")
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control-modern", placeholder = "Nhập mật khẩu..." })
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+            </div>
+
+            <button type="submit" class="btn-brand auth-submit">
+                Đăng nhập
+            </button>
+        }
+
+        <p class="auth-bottom-link">
+            Chưa có tài khoản?
+            <a href="@Url.Action("SignUp", "Account")">Đăng ký</a>
+        </p>
+    </div>
+</div>

@@ -1,71 +1,132 @@
-﻿@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
+@model IEnumerable<CookingBaby.Models.RecipeCardViewModel>
 @{
     ViewBag.Title = "Công Thức Yêu Thích Đã Lưu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="saved-header">
-    <span class="saved-sub-badge">SỔ TAY LƯU TRỮ</span>
-    <h1 class="saved-title">Công Thức Yêu Thích Đã Lưu <span class="heart-icon">♥</span></h1>
-    <p class="saved-desc">Danh sách các món ngon bạn đã đánh dấu lại để nấu vào dịp cuối tuần.</p>
+<!-- THÊM TOKEN BẢO MẬT TẠI ĐÂY -->
+<div id="ajaxAntiForgery" style="display:none;">
+    @Html.AntiForgeryToken()
 </div>
+
+<div class="saved-header" style="margin-top: 24px; margin-bottom: 24px;">
+    <span class="saved-sub-badge" style="background:#FFF1EB; color:#FF5A1F; font-size:11px; font-weight:800; padding:4px 10px; border-radius:12px; display:inline-block; margin-bottom:8px;">SỔ TAY LƯU TRỮ</span>
+    <h1 class="saved-title" style="margin:0 0 6px 0; font-size:26px; font-weight:900; color:#2D3748;">
+        Công Thức Yêu Thích Đã Lưu <span class="heart-icon" style="color:#E02424;">♥</span>
+    </h1>
+    <p class="saved-desc" style="margin:0; font-size:14px; color:#718096;">
+        Danh sách các công thức món ngon bạn đã đánh dấu để tiện nấu cho bé và gia đình vào dịp cuối tuần.
+    </p>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div style="background:#FDE8E8; color:#9B1C1C; padding:12px 16px; border-radius:10px; margin-bottom:20px; font-weight:600;">
+        ⚠️ @TempData["ErrorMessage"]
+    </div>
+}
 
 @if (Model != null && Model.Any())
 {
-    <div class="recipe-grid">
+    <div class="recipe-grid" id="savedRecipeGrid">
         @foreach (var item in Model)
         {
-<div class="saved-card" id="recipe-card-@item.RecipeId" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
-    <div class="saved-thumb-wrap">
-        <img src="~/Content/images/@(string.IsNullOrEmpty(item.ImageUrl) ? "pancake.jpg" : item.ImageUrl)" alt="@item.Title" onerror="this.src='https://placehold.co/400x250?text=Food'" />
-        <span class="saved-time-badge">⏱ @item.CookTime phút</span>
+            string imgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                ? Url.Content("~/Content/images/pancake.jpg")
+                : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                    ? Url.Content(item.ImageUrl)
+                    : (item.ImageUrl.StartsWith("Uploads/"))
+                        ? Url.Content("~/" + item.ImageUrl)
+                        : Url.Content("~/Content/images/" + item.ImageUrl);
 
-        <button type="button" class="btn-heart-unsave" onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, true);" title="Bỏ lưu">
-            ♥
-        </button>
-    </div>
+            <div class="saved-card" id="recipe-card-@item.RecipeId" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
+                <div class="saved-thumb-wrap" style="position: relative;">
+                    <img src="@imgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x250?text=Food'" />
+                    <span class="saved-time-badge">⏱ @item.CookTime phút</span>
 
-    <div class="saved-content">
-        <div class="saved-meta-row">
-            <span class="cat-label">@item.CategoryName</span>
-            @if (item.RatingCount > 0 && item.AvgRating.HasValue)
-            {
-                <span class="saved-rating">★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)</span>
-            }
-            else
-            {
-                <span class="saved-rating">☆ Mới (0)</span>
-            }
-        </div>
-        <div class="saved-recipe-name" title="@item.Title">@item.Title</div>
-        <p class="saved-recipe-desc">@item.Description</p>
-        <div class="saved-tags-wrap">
-            <span class="saved-tag-pill">Gia vị</span>
-            <span class="saved-tag-pill">Nấu nhanh</span>
-        </div>
-    </div>
-</div>
+                    <button type="button" class="btn-heart-unsave"
+                            onclick="event.stopPropagation(); handleUnsave(@item.RecipeId);"
+                            title="Bỏ lưu khỏi sổ tay">
+                        ♥
+                    </button>
+                </div>
+
+                <div class="saved-content">
+                    <div class="saved-meta-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="cat-label">@(string.IsNullOrEmpty(item.CategoryName) ? "Món ngon" : item.CategoryName)</span>
+                        @if (item.RatingCount > 0 && item.AvgRating.HasValue)
+                        {
+                            <span class="saved-rating" style="color:#D69E2E; font-weight:700; font-size:12px;">★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)</span>
+                        }
+                        else
+                        {
+                            <span class="saved-rating" style="color:#A0AEC0; font-size:12px;">☆ Mới (0)</span>
+                        }
+                    </div>
+
+                    <div class="saved-recipe-name" title="@item.Title" style="font-weight: 800; font-size: 15px; margin: 6px 0;">
+                        @item.Title
+                    </div>
+                    <p class="saved-recipe-desc" style="font-size: 13px; color: #718096; line-height: 1.4;">
+                        @item.Description
+                    </p>
+
+                    <div class="saved-tags-wrap" style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;">
+                        <span class="saved-tag-pill">Gia vị chuẩn</span>
+                        <span class="saved-tag-pill">Nấu nhanh</span>
+                    </div>
+                </div>
+            </div>
         }
     </div>
 }
 else
 {
-    <div style="text-align: center; padding: 40px; color: var(--muted);">
-        <p>Bạn chưa lưu công thức nào.</p>
+    <div id="savedEmptyBox" style="text-align: center; padding: 60px 20px; background: #FFF; border-radius: 16px; border: 1px dashed #CBD5E1; margin-top: 20px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📖</div>
+        <h3 style="font-size: 18px; font-weight: 800; color: #2D3748; margin: 0 0 8px 0;">Sổ tay của bạn đang trống</h3>
+        <p style="color: #718096; font-size: 14px; margin: 0 0 20px 0;">Bạn chưa lưu công thức nào. Hãy khám phá và bấm biểu tượng ♥ để lưu lại món ăn yêu thích nhé!</p>
+        <a href="@Url.Action("Index", "Home", new { area = "" })" class="btn-create-recipe" style="text-decoration: none; display: inline-block;">
+            Khám Phá Công Thức Ngay
+        </a>
     </div>
 }
 
 <script>
-    function toggleUnsave(recipeId) {
-        if (confirm("Bạn có muốn bỏ lưu món này không?")) {
-            $.post('/Home/ToggleSaved', { recipeId: recipeId }, function (res) {
-                if (res.success) {
-                    $('#recipe-card-' + recipeId).fadeOut(300, function () {
+    function handleUnsave(recipeId) {
+        if (!confirm("Bạn có chắc muốn bỏ lưu công thức này khỏi sổ tay?")) {
+            return;
+        }
+
+        $.ajax({
+            url: '@Url.Action("ToggleSaved", "Home", new { area = "" })',
+            type: 'POST',
+            data: { recipeId: recipeId },
+            success: function (res) {
+                if (res && res.success) {
+                    $('#recipe-card-' + recipeId).fadeOut(350, function () {
                         $(this).remove();
+
+                        // Cập nhật số lượng trên badge Header
+                        var badge = $('.nav-tab-item[href*="SavedRecipes"] .nav-badge');
+                        if (badge.length) {
+                            var count = parseInt(badge.text(), 10) || 0;
+                            badge.text(Math.max(0, count - 1));
+                        }
+
+                        // Nếu không còn thẻ nào, reload để hiện khung Sổ tay trống
+                        if ($('#savedRecipeGrid .saved-card').length === 0) {
+                            location.reload();
+                        }
                     });
                 } else {
-                    alert(res.message);
+                    alert((res && res.message) ? res.message : 'Không thể cập nhật trạng thái lưu.');
                 }
-            });
-        }
+            },
+            error: function (xhr, status, error) {
+                console.error("Lỗi bỏ lưu:", status, error, xhr.responseText);
+                alert('Có lỗi kết nối đến máy chủ khi bỏ lưu món ăn.');
+            }
+        });
     }
 </script>

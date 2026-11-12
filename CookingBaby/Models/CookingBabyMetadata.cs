@@ -9,6 +9,11 @@ namespace CookingBaby.Models
     [MetadataType(typeof(UserMetadata))]
     public partial class User
     {
+        public string UserName { get; internal set; }
+        public string PasswordSalt { get; internal set; }
+        public string FullName { get; internal set; }
+        public string Address { get; internal set; }
+        public string PhoneNumber { get; internal set; }
     }
     public class UserMetadata
     {

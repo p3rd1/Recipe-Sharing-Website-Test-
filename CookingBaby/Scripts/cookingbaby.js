@@ -1,4 +1,4 @@
-﻿// =====================================================================
+// =====================================================================
 // 1. ĐIỀU KHIỂN ĐÓNG/MỞ MODAL ĐĂNG CÔNG THỨC MỚI
 // =====================================================================
 function openCreateModal() {
@@ -189,23 +189,38 @@ function updateRatingSummary(avgRating, reviewCount) {
 }
 
 function toggleSaved(recipeId, btn, isSavedPage) {
+    if (!recipeId) return;
+
     $.ajax({
         url: '/Home/ToggleSaved',
         type: 'POST',
         data: { recipeId: recipeId },
         success: function (res) {
-            if (!res.success) { alert(res.message || 'Không thể thực hiện thao tác.'); return; }
+            if (!res.success) {
+                if (res.requireLogin) {
+                    if (confirm(res.message + "\n\nBạn có muốn chuyển đến trang Đăng nhập ngay bây giờ không?")) {
+                        window.location.href = '/Account/Login';
+                    }
+                    return;
+                }
+                alert(res.message || 'Không thể thực hiện thao tác.');
+                return;
+            }
 
             if (res.isSaved) {
                 $(btn).addClass('saved').attr('title', 'Bỏ lưu món này');
+                $(btn).text('♥');
             } else {
                 $(btn).removeClass('saved').attr('title', 'Lưu món này');
+                $(btn).text('♡');
             }
 
             if (isSavedPage && !res.isSaved) {
                 $('#recipe-card-' + recipeId).fadeOut(300, function () {
                     $(this).remove();
-                    if ($('.saved-card').length === 0) { location.reload(); }
+                    if ($('.saved-card').length === 0 || $('#savedRecipeGrid .saved-card').length === 0) {
+                        location.reload();
+                    }
                 });
             }
 
@@ -215,7 +230,10 @@ function toggleSaved(recipeId, btn, isSavedPage) {
                 badge.text(res.isSaved ? count + 1 : Math.max(0, count - 1));
             }
         },
-        error: function () { alert('Không thể thực hiện thao tác Lưu/BỎ lưu.'); }
+        error: function (xhr, status, err) {
+            console.error("Lỗi ToggleSaved:", status, err, xhr.responseText);
+            alert('Không thể thực hiện thao tác Lưu/Bỏ lưu (Lỗi kết nối máy chủ).');
+        }
     });
 }
 
@@ -281,14 +299,22 @@ function openDetailModal(recipeId) {
                 $('#modalAuthorActions').css('display', 'flex'); // Hiện cụm nút Sửa/Xóa
                 $('#modalAuthorPermission').hide();              // Ẩn dòng chữ thông báo hạn chế
                 $('#modalEditBtn').attr('href', '/Recipe/EditRecipe/' + res.recipeId);
-                $('#modalDeleteBtn').attr('href', '/Recipe/DeleteMyRecipe/' + res.recipeId);
+                $('#modalDeleteId').val(res.recipeId);
             } else {
                 $('#modalAuthorActions').hide();                 // Ẩn cụm nút Sửa/Xóa đi
                 $('#modalAuthorPermission').show();             // Hiện lại dòng thông báo
             }
 
             var imageName = res.imageUrl || 'supbido.jpg';
-            $('#modalDetailImg').attr('src', '/Content/images/' + imageName);
+            var finalSrc = '';
+            if (imageName.indexOf('/') === 0 || imageName.indexOf('http') === 0) {
+                finalSrc = imageName;
+            } else if (imageName.indexOf('Uploads/') === 0) {
+                finalSrc = '/' + imageName;
+            } else {
+                finalSrc = '/Content/images/' + imageName;
+            }
+            $('#modalDetailImg').attr('src', finalSrc);
 
             updateRatingSummary(res.avgRating || 0, res.reviewCount || 0);
             renderIngredients(res.ingredients || []);
@@ -322,4 +348,50 @@ function toggleSavedFromModal() {
 
 function closeDetailModal() {
     $('#recipeDetailModal').css('display', 'none').removeClass('active');
+}
+
+// Thêm AntiForgeryToken vào mọi AJAX POST trên cùng website
+$.ajaxPrefilter(function (options) {
+    if ((options.type || '').toUpperCase() !== 'POST') return;
+    if (/^https?:\/\//i.test(options.url) && new URL(options.url, window.location.href).origin !== window.location.origin) return;
+    var token = $('#ajaxAntiForgery input[name="__RequestVerificationToken"]').val() || $('input[name="__RequestVerificationToken"]').val();
+    if (!token) return;
+
+    if (typeof options.data === 'string') {
+        if (options.data.indexOf('__RequestVerificationToken') === -1) {
+            options.data += (options.data ? '&' : '') + '__RequestVerificationToken=' + encodeURIComponent(token);
+        }
+    } else if (typeof options.data === 'object' && options.data !== null) {
+        options.data.__RequestVerificationToken = token;
+    } else if (!options.data) {
+        options.data = { __RequestVerificationToken: token };
+    }
+});
+
+// Preview ảnh trong Modal Tạo công thức mới
+function previewCreateModalImage(input) {
+    if (input.files && input.files[0]) {
+        var file = input.files[0];
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].indexOf(ext) === -1) {
+            alert('Chỉ chấp nhận các file ảnh: .jpg, .jpeg, .png, .webp, .gif');
+            input.value = '';
+            $('#createPreviewBox').hide();
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Dung lượng ảnh tối đa 5MB.');
+            input.value = '';
+            $('#createPreviewBox').hide();
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            $('#createImagePreview').attr('src', e.target.result);
+            $('#createPreviewBox').css('display', 'flex');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        $('#createPreviewBox').hide();
+    }
 }

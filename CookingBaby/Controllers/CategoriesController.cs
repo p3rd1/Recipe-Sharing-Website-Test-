@@ -7,9 +7,11 @@ using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using CookingBaby.Models;
+using CookingBaby.Infrastructure;
 
 namespace CookingBaby.Controllers
 {
+    [SessionAuthorize(Roles = "Admin")]
     public class CategoriesController : Controller
     {
         private CookingBabyDBEntities db = new CookingBabyDBEntities();

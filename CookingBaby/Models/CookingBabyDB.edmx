@@ -90,6 +90,10 @@
           <Property Name="Role" Type="nvarchar" MaxLength="20" Nullable="false" />
           <Property Name="IsActive" Type="bit" Nullable="false" />
           <Property Name="CreatedAt" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="LastLoginAt" Type="datetime2" Precision="0" />
+          <Property Name="FailedLoginCount" Type="int" Nullable="false" />
+          <Property Name="LockoutEnd" Type="datetime2" Precision="0" />
+          <Property Name="PasswordChangedAt" Type="datetime2" Precision="0" />
         </EntityType>
         <Association Name="FK_Comments_Recipe">
           <End Role="Recipes" Type="Self.Recipes" Multiplicity="1">
@@ -404,6 +408,10 @@
           <NavigationProperty Name="Recipes" Relationship="Self.FK_Recipes_Approver" FromRole="Users" ToRole="Recipes" />
           <NavigationProperty Name="Recipes1" Relationship="Self.FK_Recipes_Author" FromRole="Users" ToRole="Recipes" />
           <NavigationProperty Name="SavedRecipes" Relationship="Self.FK_SavedRecipes_User" FromRole="Users" ToRole="SavedRecipes" />
+          <Property Name="LastLoginAt" Type="DateTime" Precision="0" />
+          <Property Name="FailedLoginCount" Type="Int32" Nullable="false" />
+          <Property Name="LockoutEnd" Type="DateTime" Precision="0" />
+          <Property Name="PasswordChangedAt" Type="DateTime" Precision="0" />
         </EntityType>
         <Association Name="FK_Recipes_Category">
           <End Role="Categories" Type="Self.Category" Multiplicity="1" />
@@ -695,6 +703,10 @@
           <EntitySetMapping Name="Users">
             <EntityTypeMapping TypeName="CookingBabyDBModel.User">
               <MappingFragment StoreEntitySet="Users">
+                <ScalarProperty Name="PasswordChangedAt" ColumnName="PasswordChangedAt" />
+                <ScalarProperty Name="LockoutEnd" ColumnName="LockoutEnd" />
+                <ScalarProperty Name="FailedLoginCount" ColumnName="FailedLoginCount" />
+                <ScalarProperty Name="LastLoginAt" ColumnName="LastLoginAt" />
                 <ScalarProperty Name="UserId" ColumnName="UserId" />
                 <ScalarProperty Name="Username" ColumnName="Username" />
                 <ScalarProperty Name="DisplayName" ColumnName="DisplayName" />

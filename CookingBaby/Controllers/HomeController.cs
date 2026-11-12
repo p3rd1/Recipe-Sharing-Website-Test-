@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.SqlClient;
@@ -7,6 +7,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using CookingBaby.Models;
+using CookingBaby.Infrastructure;
 
 namespace CookingBaby.Controllers
 {
@@ -17,12 +18,10 @@ namespace CookingBaby.Controllers
         // 1. TRANG CHỦ KHÁM PHÁ CÔNG THỨC (LỌC DANH MỤC + TỪ KHÓA + NHIỀU TAG NGUYÊN LIỆU + SẮP XẾP)
         public ActionResult Index(int? categoryId, string keyword, string[] ingredients, string sortBy = "newest")
         {
-            int currentUserId = 1;
-
-            ViewBag.SavedRecipeIds = db.SavedRecipes
-                .Where(s => s.UserId == currentUserId)
-                .Select(s => s.RecipeId)
-                .ToArray();
+            int? currentUserId = Session["UserID"] as int?;
+            ViewBag.SavedRecipeIds = currentUserId.HasValue
+                ? db.SavedRecipes.Where(s => s.UserId == currentUserId.Value).Select(s => s.RecipeId).ToArray()
+                : new int[0];
 
             // Lấy dữ liệu từ view vw_RecipeCards
             string query = "SELECT * FROM dbo.vw_RecipeCards WHERE Status = N'Đã duyệt'";
@@ -34,7 +33,7 @@ namespace CookingBaby.Controllers
                 .Where(name => name != "")
                 .Distinct()
                 .OrderBy(name => name)
-                .Take(15) // Lấy tối đa 15 tag phổ biến
+                .Take(15)
                 .ToList();
 
             // 1. Lọc theo CategoryId bằng LINQ
@@ -58,7 +57,7 @@ namespace CookingBaby.Controllers
                     .ToList();
             }
 
-            // 3. Lọc theo NHIỀU Tag nguyên liệu được chọn (món ăn chứa các nguyên liệu đã chọn)
+            // 3. Lọc theo NHIỀU Tag nguyên liệu được chọn
             var selectedIngs = new List<string>();
             if (ingredients != null && ingredients.Any())
             {
@@ -81,23 +80,23 @@ namespace CookingBaby.Controllers
             // 4. Sắp xếp danh sách món ăn bằng LINQ
             switch (sortBy)
             {
-                case "rating": // Điểm đánh giá cao nhất
+                case "rating":
                     listFromView = listFromView
                         .OrderByDescending(r => r.AvgRating ?? 0)
                         .ThenByDescending(r => r.RatingCount)
                         .ToList();
                     break;
-                case "time_asc": // Thời gian nấu nhanh nhất
+                case "time_asc":
                     listFromView = listFromView
                         .OrderBy(r => r.CookTime)
                         .ToList();
                     break;
-                case "name_asc": // Tên món A -> Z
+                case "name_asc":
                     listFromView = listFromView
                         .OrderBy(r => r.Title)
                         .ToList();
                     break;
-                default: // Mặc định: Mới nhất
+                default:
                     listFromView = listFromView
                         .OrderByDescending(r => r.RecipeId)
                         .ToList();
@@ -122,24 +121,24 @@ namespace CookingBaby.Controllers
         [HttpGet]
         public JsonResult GetRecipeDetail(int id)
         {
-            // 1. LẤY TRỰC TIẾP TỪ VIEW vw_RecipeCards (Đảm bảo 100% AuthorName khớp với kết quả SQL)
             var card = db.Database.SqlQuery<RecipeCardViewModel>(
                 "SELECT * FROM dbo.vw_RecipeCards WHERE RecipeId = @RecipeId",
                 new SqlParameter("@RecipeId", id)
             ).FirstOrDefault();
 
-            if (card == null)
+            if (card == null ||
+                (card.Status != "Đã duyệt" &&
+                 !(Session["Role"] as string == "Admin" ||
+                   (Session["UserID"] is int && (int)Session["UserID"] == card.AuthorId))))
             {
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
             }
 
-            // 2. Lấy danh sách nguyên liệu từ bảng RecipeIngredients
             var ingredients = db.Database.SqlQuery<string>(
                 "SELECT IngredientName FROM dbo.RecipeIngredients WHERE RecipeId = @RecipeId ORDER BY SortOrder ASC",
                 new SqlParameter("@RecipeId", id)
             ).ToList();
 
-            // 3. Lấy danh sách các bước nấu từ bảng RecipeSteps
             var steps = db.Database.SqlQuery<string>(
                 "SELECT Instruction FROM dbo.RecipeSteps WHERE RecipeId = @RecipeId ORDER BY StepNumber ASC",
                 new SqlParameter("@RecipeId", id)
@@ -150,7 +149,6 @@ namespace CookingBaby.Controllers
                 steps.Add(card.Description);
             }
 
-            // 4. Tính điểm đánh giá trung bình & số lượt đánh giá bằng LINQ từ bảng Ratings
             var ratingQuery = db.Ratings.Where(r => r.RecipeId == id);
             int reviewCount = ratingQuery.Count();
             double avgRating = ratingQuery
@@ -167,7 +165,7 @@ namespace CookingBaby.Controllers
                 cookTime = card.CookTime,
                 description = card.Description,
                 imageUrl = string.IsNullOrEmpty(card.ImageUrl) ? "supbido.jpg" : card.ImageUrl,
-                authorName = card.AuthorName, // Lấy thẳng chữ "Quỳnh Như", "Thanh Bình", "Siêu đầu bếp nhí" từ SQL
+                authorName = card.AuthorName,
                 ingredients = ingredients,
                 steps = steps,
                 avgRating = avgRating,
@@ -220,11 +218,13 @@ namespace CookingBaby.Controllers
 
         // 4. GỬI BÌNH LUẬN & ĐÁNH GIÁ SAO
         [HttpPost]
+        [SessionAuthorize]
+        [ValidateAntiForgeryToken]
         public JsonResult SubmitReview(int recipeId, int stars, string content)
         {
             try
             {
-                int userId = 1;
+                int userId = (int)Session["UserID"];
 
                 if (recipeId <= 0)
                 {
@@ -291,53 +291,80 @@ namespace CookingBaby.Controllers
             }
         }
 
-        // 5. LƯU HOẶC BỎ LƯU CÔNG THỨC (CHO NÚT TIM)
+        // 5. LƯU HOẶC BỎ LƯU CÔNG THỨC (CHO NÚT TIM) - XỬ LÝ AN TOÀN, KHÔNG VĂNG HTTP 500
         [HttpPost]
-        public JsonResult ToggleSaved(int recipeId)
+        public JsonResult ToggleSaved(int? recipeId)
         {
             try
             {
-                int userId = 1;
-
-                if (recipeId <= 0)
+                // 1. Kiểm tra tham số recipeId linh hoạt
+                if (!recipeId.HasValue || recipeId.Value <= 0)
                 {
                     return Json(new
                     {
                         success = false,
-                        message = "RecipeId không hợp lệ."
+                        message = "Mã công thức không hợp lệ."
                     });
                 }
 
-                bool recipeExists = db.Recipes.Any(r => r.RecipeId == recipeId);
+                int currentUserId = 0;
+
+                // 2. Kiểm tra an toàn Session["UserID"] (xử lý cả kiểu int lẫn string/object, không văng exception)
+                if (Session["UserID"] is int uid)
+                {
+                    currentUserId = uid;
+                }
+                else if (Session["UserID"] != null && int.TryParse(Session["UserID"].ToString(), out int parsedUid))
+                {
+                    currentUserId = parsedUid;
+                }
+
+                // Nếu chưa đăng nhập, trả về JSON thông báo sạch sẽ để client chuyển hướng/báo lỗi
+                if (currentUserId <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        requireLogin = true,
+                        message = "Vui lòng đăng nhập để lưu công thức này vào sổ tay!"
+                    });
+                }
+
+                int targetRecipeId = recipeId.Value;
+
+                // 3. Kiểm tra công thức có tồn tại trong CSDL không
+                var recipeExists = db.Recipes.Any(r => r.RecipeId == targetRecipeId);
                 if (!recipeExists)
                 {
                     return Json(new
                     {
                         success = false,
-                        message = "Không tìm thấy công thức."
+                        message = "Công thức không tồn tại hoặc đã bị xóa."
                     });
                 }
 
-                var savedRecipe = db.SavedRecipes
-                    .FirstOrDefault(s => s.UserId == userId && s.RecipeId == recipeId);
+                // 4. Tìm bản ghi trong bảng SavedRecipes theo khóa phức hợp (UserId, RecipeId)
+                var savedRecord = db.SavedRecipes.FirstOrDefault(s => s.RecipeId == targetRecipeId && s.UserId == currentUserId);
 
-                bool isSaved;
-
-                if (savedRecipe == null)
+                bool isSaved = false;
+                if (savedRecord != null)
                 {
-                    var newSavedRecipe = new SavedRecipe
-                    {
-                        UserId = userId,
-                        RecipeId = recipeId,
-                        SavedAt = DateTime.Now
-                    };
-                    db.SavedRecipes.Add(newSavedRecipe);
-                    isSaved = true;
+                    // Bỏ lưu: Xóa bản ghi
+                    db.SavedRecipes.Remove(savedRecord);
+                    isSaved = false;
                 }
                 else
                 {
-                    db.SavedRecipes.Remove(savedRecipe);
-                    isSaved = false;
+                    // Lưu mới: Khởi tạo đầy đủ các trường (ĐẶC BIỆT là SavedAt kiểu DateTime NOT NULL)
+                    var newSave = new SavedRecipe
+                    {
+                        UserId = currentUserId,
+                        RecipeId = targetRecipeId,
+                        SavedAt = DateTime.Now // Bắt buộc gán ngày giờ hiện tại để không bị lỗi DbEntityValidationException / SqlDateTime overflow
+                    };
+
+                    db.SavedRecipes.Add(newSave);
+                    isSaved = true;
                 }
 
                 db.SaveChanges();
@@ -345,15 +372,24 @@ namespace CookingBaby.Controllers
                 return Json(new
                 {
                     success = true,
-                    isSaved = isSaved
+                    isSaved = isSaved,
+                    message = isSaved ? "Đã lưu vào sổ tay thành công!" : "Đã bỏ lưu công thức."
                 });
             }
             catch (Exception ex)
             {
+                // Bắt toàn diện mọi ngoại lệ, lấy chi tiết InnerException để client/developer dễ debug
+                string innerDetail = ex.InnerException != null ? ex.InnerException.Message : null;
+                if (ex.InnerException != null && ex.InnerException.InnerException != null)
+                {
+                    innerDetail += " -> " + ex.InnerException.InnerException.Message;
+                }
+
                 return Json(new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Lỗi hệ thống khi lưu công thức: " + ex.Message,
+                    inner = innerDetail
                 });
             }
         }

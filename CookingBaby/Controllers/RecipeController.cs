@@ -7,6 +7,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using CookingBaby.Models;
+using CookingBaby.Infrastructure;
 
 namespace CookingBaby.Controllers
 {
@@ -14,11 +15,13 @@ namespace CookingBaby.Controllers
     {
         private CookingBabyDBEntities db = new CookingBabyDBEntities();
 
+        private int CurrentUserId { get { return (int)Session["UserID"]; } }
+
         // 1. TAB QUẢN LÝ CÁ NHÂN (MÓN CỦA TÔI)
+        [SessionAuthorize]
         public ActionResult MyRecipes()
         {
-            var chef = db.Users.FirstOrDefault(u => u.Username == "sieudaubepnhi");
-            int chefId = chef != null ? chef.UserId : 1;
+            int chefId = CurrentUserId;
 
             string query = "SELECT * FROM dbo.vw_RecipeCards WHERE AuthorId = @p0 AND Status != N'Đã ẩn' ORDER BY CreatedAt DESC";
             var myRecipes = db.Database.SqlQuery<RecipeCardViewModel>(query, chefId).ToList();
@@ -33,11 +36,10 @@ namespace CookingBaby.Controllers
                 .Include(r => r.User1)
                 .FirstOrDefault(r => r.RecipeId == id);
 
-            if (recipe == null)
-            {
+            if (recipe == null || (recipe.Status != "Đã duyệt" &&
+                !(Session["Role"] as string == "Admin" ||
+                  (Session["UserID"] is int && (int)Session["UserID"] == recipe.AuthorId))))
                 return HttpNotFound();
-            }
-
             return View(recipe);
         }
 
@@ -56,11 +58,11 @@ namespace CookingBaby.Controllers
                     return Json(new { success = false, message = "Không tìm thấy công thức." }, JsonRequestBehavior.AllowGet);
                 }
 
-                // Lấy ID của Siêu đầu bếp nhí đang đăng nhập hiện tại (mặc định ID = 1 hoặc theo username)
-                var chef = db.Users.FirstOrDefault(u => u.Username == "sieudaubepnhi");
-                int currentUserId = chef != null ? chef.UserId : 1;
+                int currentUserId = Session["UserID"] is int ? (int)Session["UserID"] : 0;
+                if (recipe.Status != "Đã duyệt" &&
+                    !(Session["Role"] as string == "Admin" || currentUserId == recipe.AuthorId))
+                    return Json(new { success = false, message = "Không tìm thấy công thức." }, JsonRequestBehavior.AllowGet);
 
-                // Kiểm tra xem user hiện tại đã lưu món này chưa
                 bool isSaved = db.SavedRecipes.Any(s => s.UserId == currentUserId && s.RecipeId == id);
 
                 var ingredients = db.RecipeIngredients
@@ -88,8 +90,8 @@ namespace CookingBaby.Controllers
                     description = recipe.Description,
                     authorName = recipe.User1 != null ? recipe.User1.DisplayName : "Siêu đầu bếp nhí",
                     authorId = recipe.AuthorId,
-                    currentUserId = currentUserId, // Gửi ID user hiện tại sang để so sánh quyền
-                    isSaved = isSaved,             // Trạng thái thực tế đã lưu hay chưa
+                    currentUserId = currentUserId,
+                    isSaved = isSaved,
                     imageUrl = recipe.ImageUrl,
                     avgRating = avgRating,
                     reviewCount = reviewCount,
@@ -105,8 +107,9 @@ namespace CookingBaby.Controllers
             }
         }
 
-        // 2. THÊM MÓN MỚI TỪ MODAL (LƯU ẢNH + TÁCH DÒNG INGREDIENTS & STEPS + KIỂM TRA ĐẦU VÀO)
+        // 2. THÊM MÓN MỚI (LƯU ẢNH VÀO /Uploads/Recipes/ VỚI Guid + 1-N INGREDIENTS & STEPS)
         [HttpPost]
+        [SessionAuthorize]
         [ValidateAntiForgeryToken]
         public ActionResult CreateRecipe(Recipe recipe, HttpPostedFileBase ImageFile, string IngredientsList, string Instructions, string StepsList)
         {
@@ -116,7 +119,6 @@ namespace CookingBaby.Controllers
 
                 string rawSteps = !string.IsNullOrWhiteSpace(Instructions) ? Instructions : StepsList;
 
-                // Kiểm tra dữ liệu đầu vào phía Server
                 if (string.IsNullOrWhiteSpace(recipe.Title) ||
                     string.IsNullOrWhiteSpace(IngredientsList) ||
                     string.IsNullOrWhiteSpace(rawSteps))
@@ -125,8 +127,9 @@ namespace CookingBaby.Controllers
                     return RedirectToAction("MyRecipes");
                 }
 
-                var user = db.Users.FirstOrDefault(u => u.Username == "sieudaubepnhi") ?? db.Users.FirstOrDefault();
-                recipe.AuthorId = user != null ? user.UserId : 1;
+                recipe.AuthorId = CurrentUserId;
+                recipe.ApprovedBy = null;
+                recipe.ApprovedAt = null;
 
                 recipe.Title = recipe.Title.Trim();
                 recipe.CreatedAt = DateTime.Now;
@@ -137,22 +140,10 @@ namespace CookingBaby.Controllers
                     ? recipe.Description.Trim()
                     : "Công thức nấu ăn thơm ngon từ Cooking Baby.";
 
-                // Xử lý kiểm tra và lưu file ảnh
+                // Upload ảnh vào /Uploads/Recipes/ bằng Server.MapPath và Guid
                 if (ImageFile != null && ImageFile.ContentLength > 0)
                 {
-                    string ext = Path.GetExtension(ImageFile.FileName).ToLower();
-                    var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-                    if (!allowedExts.Contains(ext))
-                    {
-                        TempData["ErrorMessage"] = "Định dạng ảnh không hợp lệ! Chỉ chấp nhận file .jpg, .png, .webp.";
-                        return RedirectToAction("MyRecipes");
-                    }
-
-                    string fileName = Path.GetFileName(ImageFile.FileName);
-                    string folder = Server.MapPath("~/Content/images");
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                    ImageFile.SaveAs(Path.Combine(folder, fileName));
-                    recipe.ImageUrl = fileName;
+                    recipe.ImageUrl = SaveUploadedImage(ImageFile);
                 }
                 else
                 {
@@ -162,13 +153,11 @@ namespace CookingBaby.Controllers
                 db.Recipes.Add(recipe);
                 db.SaveChanges();
 
-                // Tách dòng và lưu Nguyên liệu (RecipeIngredients) - Lọc trùng để không lỗi UQ_RecipeIngredients
+                // Lưu danh sách quan hệ 1-N
                 SaveIngredientsHelper(recipe.RecipeId, IngredientsList);
-
-                // Tách dòng và lưu Các bước nấu (RecipeSteps)
                 SaveStepsHelper(recipe.RecipeId, rawSteps);
 
-                TempData["SuccessMessage"] = "Đăng công thức mới thành công! Bài viết đang chờ duyệt.";
+                TempData["SuccessMessage"] = "Đăng công thức mới thành công! Bài viết đang chờ Ban Quản Trị duyệt.";
                 return RedirectToAction("MyRecipes");
             }
             catch (Exception ex)
@@ -179,7 +168,14 @@ namespace CookingBaby.Controllers
             }
         }
 
-        // 3. SỬA MÓN ĂN (GET)
+        // 3. SỬA MÓN ĂN (GET: Hỗ trợ cả /Recipe/Edit và /Recipe/EditRecipe)
+        [SessionAuthorize]
+        public ActionResult Edit(int? id)
+        {
+            return EditRecipe(id);
+        }
+
+        [SessionAuthorize]
         public ActionResult EditRecipe(int? id)
         {
             if (id == null)
@@ -188,13 +184,17 @@ namespace CookingBaby.Controllers
             }
 
             var recipe = db.Recipes.FirstOrDefault(r => r.RecipeId == id.Value);
-            if (recipe == null)
+            if (recipe == null) return HttpNotFound();
+
+            bool isAdmin = Session["Role"] as string == "Admin";
+            if (recipe.AuthorId != CurrentUserId && !isAdmin)
             {
-                return HttpNotFound();
+                return new HttpStatusCodeResult(403, "Bạn không có quyền chỉnh sửa công thức này.");
             }
 
             ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName", recipe.CategoryId);
-            // 1. Nối danh sách nguyên liệu từ bảng RecipeIngredients
+
+            // Nối danh sách nguyên liệu từ bảng RecipeIngredients
             var ingredients = db.RecipeIngredients
                                 .Where(ri => ri.RecipeId == recipe.RecipeId)
                                 .OrderBy(ri => ri.SortOrder)
@@ -202,7 +202,7 @@ namespace CookingBaby.Controllers
                                 .ToList();
             ViewBag.IngredientsString = ingredients.Any() ? string.Join(", ", ingredients) : "";
 
-            // 2. Nối danh sách các bước từ bảng RecipeSteps (mỗi bước 1 dòng)
+            // Nối danh sách các bước từ bảng RecipeSteps
             var steps = db.Database.SqlQuery<string>(
                 "SELECT Instruction FROM dbo.RecipeSteps WHERE RecipeId = @p0 ORDER BY StepNumber ASC",
                 recipe.RecipeId
@@ -212,8 +212,17 @@ namespace CookingBaby.Controllers
             return View(recipe);
         }
 
-        // 3. SỬA MÓN ĂN (POST) + KIỂM TRA DỮ LIỆU ĐẦU VÀO
+        // 3. SỬA MÓN ĂN (POST: Hỗ trợ cả /Recipe/Edit và /Recipe/EditRecipe)
         [HttpPost]
+        [SessionAuthorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(Recipe recipe, HttpPostedFileBase ImageFile, string IngredientsList, string Instructions)
+        {
+            return EditRecipe(recipe, ImageFile, IngredientsList, Instructions);
+        }
+
+        [HttpPost]
+        [SessionAuthorize]
         [ValidateAntiForgeryToken]
         public ActionResult EditRecipe(Recipe recipe, HttpPostedFileBase ImageFile, string IngredientsList, string Instructions)
         {
@@ -221,7 +230,6 @@ namespace CookingBaby.Controllers
             {
                 db.Configuration.ValidateOnSaveEnabled = false;
 
-                // Kiểm tra dữ liệu đầu vào chặt chẽ
                 bool hasError = false;
                 if (string.IsNullOrWhiteSpace(recipe.Title))
                 {
@@ -258,33 +266,45 @@ namespace CookingBaby.Controllers
                 }
 
                 var existingRecipe = db.Recipes.Find(recipe.RecipeId);
-                if (existingRecipe != null)
+                if (existingRecipe == null) return HttpNotFound();
+
+                bool isAdmin = Session["Role"] as string == "Admin";
+                if (existingRecipe.AuthorId != CurrentUserId && !isAdmin)
+                    return new HttpStatusCodeResult(403);
+
+                existingRecipe.Title = recipe.Title.Trim();
+                existingRecipe.CategoryId = recipe.CategoryId;
+                existingRecipe.CookTime = recipe.CookTime;
+                existingRecipe.Description = recipe.Description.Trim();
+                existingRecipe.UpdatedAt = DateTime.Now;
+
+                // Cập nhật ảnh nếu chọn file mới
+                if (ImageFile != null && ImageFile.ContentLength > 0)
                 {
-                    existingRecipe.Title = recipe.Title.Trim();
-                    existingRecipe.CategoryId = recipe.CategoryId;
-                    existingRecipe.CookTime = recipe.CookTime;
-                    existingRecipe.Description = recipe.Description.Trim();
-                    existingRecipe.UpdatedAt = DateTime.Now;
+                    string oldImage = existingRecipe.ImageUrl;
+                    string newImagePath = SaveUploadedImage(ImageFile);
+                    existingRecipe.ImageUrl = newImagePath;
 
-                    // Cập nhật ảnh nếu có chọn file mới
-                    if (ImageFile != null && ImageFile.ContentLength > 0)
+                    // Dọn dẹp file ảnh cũ nếu trước đó là ảnh tự upload
+                    if (!string.IsNullOrWhiteSpace(oldImage) && oldImage.StartsWith("/Uploads/Recipes/"))
                     {
-                        string fileName = Path.GetFileName(ImageFile.FileName);
-                        string folder = Server.MapPath("~/Content/images");
-                        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                        ImageFile.SaveAs(Path.Combine(folder, fileName));
-                        existingRecipe.ImageUrl = fileName;
+                        try
+                        {
+                            string oldPhysical = Server.MapPath("~" + oldImage);
+                            if (System.IO.File.Exists(oldPhysical)) System.IO.File.Delete(oldPhysical);
+                        }
+                        catch { }
                     }
-
-                    db.SaveChanges();
-
-                    // Cập nhật lại bảng RecipeIngredients & RecipeSteps
-                    SaveIngredientsHelper(recipe.RecipeId, IngredientsList);
-                    SaveStepsHelper(recipe.RecipeId, Instructions);
-
-                    TempData["SuccessMessage"] = "Cập nhật công thức thành công!";
-                    return RedirectToAction("MyRecipes");
                 }
+
+                db.SaveChanges();
+
+                // Cập nhật quan hệ 1-N: RecipeIngredients & RecipeSteps
+                SaveIngredientsHelper(recipe.RecipeId, IngredientsList);
+                SaveStepsHelper(recipe.RecipeId, Instructions);
+
+                TempData["SuccessMessage"] = "Cập nhật công thức thành công!";
+                return RedirectToAction("MyRecipes");
             }
             catch (Exception ex)
             {
@@ -298,7 +318,139 @@ namespace CookingBaby.Controllers
             return View(recipe);
         }
 
-        // HÀM PHỤ TRỢ 1: Tách và lưu danh sách nguyên liệu (Chống trùng lặp tên nguyên liệu trong cùng 1 món)
+        // 4. XÓA MÓN ĂN (POST: Hỗ trợ cả Delete và DeleteMyRecipe)
+        [HttpPost]
+        [SessionAuthorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult Delete(int id)
+        {
+            try
+            {
+                var recipe = db.Recipes.Find(id);
+                if (recipe == null) return HttpNotFound();
+
+                bool isAdmin = Session["Role"] as string == "Admin";
+                if (recipe.AuthorId != CurrentUserId && !isAdmin)
+                {
+                    return new HttpStatusCodeResult(403, "Bạn không có quyền xóa công thức này.");
+                }
+
+                // Xóa file ảnh vật lý trên Server nếu là ảnh do user upload vào /Uploads/Recipes/
+                if (!string.IsNullOrWhiteSpace(recipe.ImageUrl) && recipe.ImageUrl.StartsWith("/Uploads/Recipes/"))
+                {
+                    try
+                    {
+                        string physicalPath = Server.MapPath("~" + recipe.ImageUrl);
+                        if (System.IO.File.Exists(physicalPath))
+                        {
+                            System.IO.File.Delete(physicalPath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Lỗi xóa file ảnh: " + ex.Message);
+                    }
+                }
+
+                // Xóa các bảng liên quan 1-N
+                db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeSteps WHERE RecipeId = @p0", id);
+                db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeIngredients WHERE RecipeId = @p0", id);
+                db.Database.ExecuteSqlCommand("DELETE FROM dbo.SavedRecipes WHERE RecipeId = @p0", id);
+                db.Database.ExecuteSqlCommand("DELETE FROM dbo.Ratings WHERE RecipeId = @p0", id);
+                db.Database.ExecuteSqlCommand("DELETE FROM dbo.Comments WHERE RecipeId = @p0", id);
+
+                db.Recipes.Remove(recipe);
+                db.SaveChanges();
+
+                TempData["SuccessMessage"] = "Đã xóa công thức thành công!";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa công thức: " + ex.Message;
+            }
+
+            return RedirectToAction("MyRecipes");
+        }
+
+        [HttpPost]
+        [SessionAuthorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteMyRecipe(int id)
+        {
+            return Delete(id);
+        }
+
+        // 5. TRANG CÔNG THỨC ĐÃ LƯU (SAVED RECIPES) CHO USER ĐANG ĐĂNG NHẬP
+        [SessionAuthorize]
+        public ActionResult SavedRecipes()
+        {
+            ViewBag.ActiveTab = "SavedRecipes";
+
+            try
+            {
+                int userId = CurrentUserId;
+
+                // Truy vấn LINQ bảng SavedRecipes kết hợp Recipe, Category, User, Ratings
+                var recipes = db.SavedRecipes
+                    .Where(s => s.UserId == userId && s.Recipe.Status != "Đã ẩn")
+                    .OrderByDescending(s => s.SavedAt)
+                    .Select(s => new RecipeCardViewModel
+                    {
+                        RecipeId = s.Recipe.RecipeId,
+                        Title = s.Recipe.Title,
+                        Description = s.Recipe.Description,
+                        CookTime = s.Recipe.CookTime,
+                        ImageUrl = s.Recipe.ImageUrl,
+                        CategoryId = s.Recipe.CategoryId,
+                        CategoryName = s.Recipe.Category.CategoryName,
+                        AuthorName = s.Recipe.User1 != null
+                            ? s.Recipe.User1.DisplayName
+                            : "Không xác định",
+                        Status = s.Recipe.Status,
+                        RatingCount = s.Recipe.Ratings.Count(),
+                        AvgRating = s.Recipe.Ratings
+                            .Select(r => (decimal?)r.Stars)
+                            .Average()
+                    })
+                    .ToList();
+
+                return View(recipes);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Lỗi khi tải danh sách công thức đã lưu: " + ex.Message;
+                return View(new List<RecipeCardViewModel>());
+            }
+        }
+
+        // HÀM TIỆN ÍCH LƯU FILE ẢNH VÀO /Uploads/Recipes/
+        private string SaveUploadedImage(HttpPostedFileBase imageFile)
+        {
+            if (imageFile == null || imageFile.ContentLength == 0) return null;
+
+            string ext = Path.GetExtension(imageFile.FileName).ToLower();
+            var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            if (!allowedExts.Contains(ext))
+            {
+                throw new InvalidOperationException("Định dạng ảnh không hợp lệ! Chỉ chấp nhận file .jpg, .jpeg, .png, .webp.");
+            }
+
+            if (imageFile.ContentLength > 5 * 1024 * 1024)
+            {
+                throw new InvalidOperationException("Kích thước file ảnh không được vượt quá 5MB.");
+            }
+
+            string uniqueFileName = Guid.NewGuid().ToString() + ext;
+            string folder = Server.MapPath("~/Uploads/Recipes");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+            string physicalPath = Path.Combine(folder, uniqueFileName);
+            imageFile.SaveAs(physicalPath);
+
+            return "/Uploads/Recipes/" + uniqueFileName;
+        }
+
+        // HÀM TIỆN ÍCH 1-N: Tách và cập nhật danh sách nguyên liệu
         private void SaveIngredientsHelper(int recipeId, string ingredientsList)
         {
             db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeIngredients WHERE RecipeId = @p0", recipeId);
@@ -309,7 +461,7 @@ namespace CookingBaby.Controllers
                     .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(x => x.Trim())
                     .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Distinct(StringComparer.OrdinalIgnoreCase) // Loại bỏ nguyên liệu nhập trùng
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 byte sort = 1;
@@ -323,7 +475,7 @@ namespace CookingBaby.Controllers
             }
         }
 
-        // HÀM PHỤ TRỢ 2: Tách dòng và lưu danh sách các bước thực hiện vào dbo.RecipeSteps
+        // HÀM TIỆN ÍCH 1-N: Tách và cập nhật danh sách các bước nấu
         private void SaveStepsHelper(int recipeId, string instructionsText)
         {
             db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeSteps WHERE RecipeId = @p0", recipeId);
@@ -339,8 +491,8 @@ namespace CookingBaby.Controllers
                 byte stepNo = 1;
                 foreach (var line in stepLines)
                 {
-                    // Tự động cắt bỏ chữ "Bước 1:", "Bước 2:" ở đầu dòng nếu người dùng lỡ gõ vào
-                    string cleanInstruction = System.Text.RegularExpressions.Regex.Replace(line, @"^(Bước|Step)\s*\d+\s*[:.-]\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+                    string cleanInstruction = System.Text.RegularExpressions.Regex.Replace(
+                        line, @"^(Bước|Step)\s*\d+\s*[:.-]\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
                     if (string.IsNullOrWhiteSpace(cleanInstruction)) cleanInstruction = line;
 
                     db.Database.ExecuteSqlCommand(
@@ -349,59 +501,6 @@ namespace CookingBaby.Controllers
                     );
                 }
             }
-        }
-
-        // 4. XÓA MÓN ĂN TRONG QUẢN LÝ CÁ NHÂN
-        public ActionResult DeleteMyRecipe(int id)
-        {
-            var recipe = db.Recipes.Find(id);
-            if (recipe != null)
-            {
-                db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeSteps WHERE RecipeId = @p0", id);
-                db.Database.ExecuteSqlCommand("DELETE FROM dbo.RecipeIngredients WHERE RecipeId = @p0", id);
-                db.Database.ExecuteSqlCommand("DELETE FROM dbo.SavedRecipes WHERE RecipeId = @p0", id);
-                db.Database.ExecuteSqlCommand("DELETE FROM dbo.Ratings WHERE RecipeId = @p0", id);
-                db.Database.ExecuteSqlCommand("DELETE FROM dbo.Comments WHERE RecipeId = @p0", id);
-
-                db.Recipes.Remove(recipe);
-                db.SaveChanges();
-                TempData["SuccessMessage"] = "Đã xóa món ăn thành công!";
-            }
-            return RedirectToAction("MyRecipes");
-        }
-
-        // 5. TRANG CÔNG THỨC ĐÃ LƯU
-        public ActionResult SavedRecipes()
-        {
-            ViewBag.ActiveTab = "SavedRecipes";
-
-            int userId = 1;
-
-            // Lấy danh sách công thức đã lưu bằng LINQ
-            var recipes = db.SavedRecipes
-                .Where(s => s.UserId == userId)
-                .OrderByDescending(s => s.SavedAt)
-                .Select(s => new RecipeCardViewModel
-                {
-                    RecipeId = s.Recipe.RecipeId,
-                    Title = s.Recipe.Title,
-                    Description = s.Recipe.Description,
-                    CookTime = s.Recipe.CookTime,
-                    ImageUrl = s.Recipe.ImageUrl,
-                    CategoryId = s.Recipe.CategoryId,
-                    CategoryName = s.Recipe.Category.CategoryName,
-                    AuthorName = s.Recipe.User1 != null
-                        ? s.Recipe.User1.DisplayName
-                        : "Không xác định",
-                    Status = s.Recipe.Status,
-                    RatingCount = s.Recipe.Ratings.Count(),
-                    AvgRating = s.Recipe.Ratings
-                        .Select(r => (decimal?)r.Stars)
-                        .Average()
-                })
-                .ToList();
-
-            return View(recipes);
         }
 
         protected override void Dispose(bool disposing)
@@ -421,11 +520,12 @@ namespace CookingBaby.Controllers
 
             try
             {
-                var chef = db.Users.FirstOrDefault(u => u.Username == "sieudaubepnhi");
-                int chefId = chef != null ? chef.UserId : 1;
-
-                myRecipeCount = db.Recipes.Count(r => r.AuthorId == chefId && r.Status != "Đã ẩn");
-                savedCount = db.SavedRecipes.Count(s => s.UserId == chefId);
+                if (Session["UserID"] is int)
+                {
+                    int chefId = CurrentUserId;
+                    myRecipeCount = db.Recipes.Count(r => r.AuthorId == chefId && r.Status != "Đã ẩn");
+                    savedCount = db.SavedRecipes.Count(s => s.UserId == chefId);
+                }
             }
             catch
             {

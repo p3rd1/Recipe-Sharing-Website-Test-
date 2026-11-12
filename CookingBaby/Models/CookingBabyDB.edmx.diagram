@@ -4,7 +4,7 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="d2bfe6a7dec447f98f915b217969a626" Name="Diagram1" ZoomLevel="41">
+      <Diagram DiagramId="d2bfe6a7dec447f98f915b217969a626" Name="Diagram1" ZoomLevel="71">
         <EntityTypeShape EntityType="CookingBabyDBModel.Category" Width="1.5" PointX="0.75" PointY="2.375" IsExpanded="true" />
         <EntityTypeShape EntityType="CookingBabyDBModel.Comment" Width="1.5" PointX="3" PointY="7.125" IsExpanded="true" />
         <EntityTypeShape EntityType="CookingBabyDBModel.Rating" Width="1.5" PointX="6" PointY="7.125" IsExpanded="true" />
