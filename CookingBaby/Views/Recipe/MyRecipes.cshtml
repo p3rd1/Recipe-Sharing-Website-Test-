@@ -5,6 +5,23 @@
 }
 
 <div class="admin-toolbar" style="margin-top: 24px;">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div style="background:#d4edda; color:#155724;
+                padding:15px; margin-bottom:20px;
+                border-radius:8px;">
+            ✔ @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div style="background:#f8d7da; color:#721c24;
+                padding:15px; margin-bottom:20px;
+                border-radius:8px;">
+            ⚠ @TempData["ErrorMessage"]
+        </div>
+    }
     <div>
         <h2 class="admin-title">GÓC BẾP CỦA TÔI</h2>
         <p class="admin-subtitle">Quản lý danh sách các công thức do bạn đóng góp cho cộng đồng Cooking Baby</p>
@@ -36,18 +53,9 @@
                 <span class="status-pill status-pending">⏳ Chờ duyệt</span>
             }
 
-            @{
-                string imgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
-                    ? Url.Content("~/Content/images/pancake.jpg")
-                    : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
-                        ? Url.Content(item.ImageUrl)
-                        : (item.ImageUrl.StartsWith("Uploads/"))
-                            ? Url.Content("~/" + item.ImageUrl)
-                            : Url.Content("~/Content/images/" + item.ImageUrl);
-            }
             <div class="card-img-wrap">
                 <span class="time-badge">⏱ @item.CookTime phút</span>
-                <img src="@imgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+                <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
             </div>
 
             <div class="card-content">

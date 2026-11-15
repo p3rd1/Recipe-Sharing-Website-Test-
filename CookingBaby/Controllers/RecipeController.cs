@@ -147,7 +147,7 @@ namespace CookingBaby.Controllers
                 }
                 else
                 {
-                    recipe.ImageUrl = "pancake.jpg";
+                    recipe.ImageUrl = "/Content/images/pancake.jpg";
                 }
 
                 db.Recipes.Add(recipe);

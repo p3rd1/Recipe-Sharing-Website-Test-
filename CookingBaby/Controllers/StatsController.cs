@@ -1,6 +1,7 @@
 using System.Web.Mvc;
 using CookingBaby.Models;
 using CookingBaby.Services;
+using CookingBaby.Infrastructure;
 
 namespace CookingBaby.Controllers
 {
@@ -9,6 +10,7 @@ namespace CookingBaby.Controllers
     ///   /Stats/Overview     /Stats/Categories     /Stats/TopRated     /Stats/TopIngredients     /Stats/TopAuthors
     /// TODO: project chưa có đăng nhập; khi có thì giới hạn controller này cho Admin.
     /// </summary>
+    [SessionAuthorize(Roles = "Admin")]
     public class StatsController : Controller
     {
         private readonly CookingBabyDBEntities db = new CookingBabyDBEntities();
