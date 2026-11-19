@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
@@ -19,6 +19,8 @@ namespace CookingBaby.Controllers
         // GET: Categories
         public ActionResult Index()
         {
+            ViewBag.ActiveTab = "Categories";
+            ViewBag.IsAdminPage = true;
             return View(db.Categories.ToList());
         }
 

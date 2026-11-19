@@ -1,70 +1,262 @@
-﻿@model IEnumerable<CookingBaby.Models.Category>
-
+@model CookingBaby.Models.RecipeHomeViewModel
 @{
-    ViewBag.Title = "Quản Lý Danh Mục";
+    ViewBag.Title = "Trang Chủ";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="admin-toolbar">
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div role="alert" style="background-color:#d4edda; color:#155724;
-         padding:15px; margin-bottom:20px; border-radius:8px;
-         border:1px solid #c3e6cb;">
-            ✔ @TempData["SuccessMessage"]
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div role="alert" style="background-color:#f8d7da; color:#721c24;
-         padding:15px; margin-bottom:20px; border-radius:8px;
-         border:1px solid #f5c6cb;">
-            ⚠ @TempData["ErrorMessage"]
-        </div>
-    }
+<!-- Hero Banner Tìm Kiếm & Lọc Nhiều Tag Nguyên Liệu -->
+<section class="hero-cooking">
+    <div class="hero-text-col">
+        <small class="hero-subtitle">● Cộng đồng chia sẻ công thức chuẩn vị tại nhà</small>
+        <h1 class="hero-title">Hôm nay trong bếp bạn có <span>nguyên liệu</span> gì?</h1>
 
-    <div>
-        <h2 class="admin-title">QUẢN LÝ DANH MỤC ĐẦU BẾP NHÍ</h2>
-        <p class="admin-subtitle">Danh sách 4 nhóm công thức hiển thị trên thanh tab trang chủ</p>
-    </div>
-    @Html.ActionLink("+ Thêm Danh Mục Mới", "Create", null, new { @class = "btn-add-category" })
-</div>
-
-<div class="admin-table-wrap">
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>Thứ Tự</th>
-                <th>Tên Danh Mục</th>
-                <th>Màu Nhận Diện</th>
-                <th style="text-align: right;">Thao Tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
+        @using (Html.BeginForm("Index", "Home", FormMethod.Get, new { id = "filterForm" }))
+        {
+            if (Model.SelectedCategoryId.HasValue)
             {
-                <tr>
-                    <td class="order-badge">
-                        #@item.DisplayOrder
-                    </td>
-                    <td class="cat-title-cell">
-                        @item.CategoryName
-                    </td>
-                    <td>
-                        <span class="color-dot" style="background-color: @item.ThemeColor;"></span>
-                        <code class="color-tag">@item.ThemeColor</code>
-                    </td>
-                    <td class="cell-actions">
-                        @Html.ActionLink("Sửa", "Edit", new { id = item.CategoryId }, new { @class = "act-edit" })
-                        @Html.ActionLink("Chi tiết", "Details", new { id = item.CategoryId }, new { @class = "act-details" })
-                        @Html.ActionLink("Xóa", "Delete", new { id = item.CategoryId }, new { @class = "act-delete" })
-                    </td>
-                </tr>
+                <input type="hidden" name="categoryId" value="@Model.SelectedCategoryId" />
             }
-        </tbody>
-    </table>
+
+            <div class="search-form">
+                <input type="text" name="keyword" value="@Model.Keyword" placeholder="Tìm theo tên món ăn, mô tả, nguyên liệu (VD: Súp bí đỏ, Salad, Pancake...)" />
+                <button type="submit" class="btn-search">Tìm kiếm</button>
+            </div>
+
+            <!-- KHU VỰC CHỌN NHIỀU TAG NGUYÊN LIỆU -->
+            if (Model.AvailableIngredients != null && Model.AvailableIngredients.Any())
+            {
+                <div class="home-filter-tags-wrap">
+                    <span class="home-filter-tags-label">
+                        🏷️ Lọc theo nguyên liệu (có thể chọn nhiều):
+                    </span>
+                    <div class="home-filter-tags-list">
+                        @foreach (var ing in Model.AvailableIngredients)
+                        {
+                            bool isChecked = Model.SelectedIngredients != null &&
+                                             Model.SelectedIngredients.Any(x => x.Equals(ing, StringComparison.OrdinalIgnoreCase));
+                            <label class="tag-checkbox-label @(isChecked ? "active" : "")">
+                                <input type="checkbox"
+                                       name="ingredients"
+                                       value="@ing"
+                                       class="tag-checkbox-input"
+                                       @(isChecked ? "checked" : "")
+                                       onchange="document.getElementById('filterForm').submit();" />
+                                @(isChecked ? "✓ " : "+ ") @ing
+                            </label>
+                        }
+
+                        @if (Model.SelectedIngredients != null && Model.SelectedIngredients.Any())
+                        {
+                            <a href="@Url.Action("Index", "Home", new { categoryId = Model.SelectedCategoryId, keyword = Model.Keyword, sortBy = Model.SortBy })"
+                               class="btn-clear-tags">
+                                ✕ Bỏ chọn nguyên liệu
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Giữ trạng thái Sắp xếp khi bấm Tìm kiếm hoặc chọn Tag -->
+            <input type="hidden" name="sortBy" id="hiddenSortBy" value="@Model.SortBy" />
+        }
+    </div>
+
+    <!-- Khung Thế giới của đầu bếp nhí có Logo và Viền chuẩn -->
+    <div class="mascot-box">
+        <span class="mascot-badge">Thế giới của đầu bếp nhí</span>
+        <img src="~/Content/images/logo.jpg" alt="Cooking Baby Mascot" class="mascot-img" />
+        <p class="mascot-text">Chọn danh mục hoặc nguyên liệu để lọc nhóm món ăn!</p>
+    </div>
+</section>
+
+<!-- Thanh Tab Lọc 4 Danh Mục Lấy Động Từ Database -->
+<div class="category-filter-bar">
+    <a href="javascript:void(0)"
+       onclick="filterByCategory('')"
+       class="cat-pill @(!Model.SelectedCategoryId.HasValue ? "active" : "")">
+        Tất cả món
+    </a>
+    @foreach (var cat in Model.Categories)
+    {
+        <a href="javascript:void(0)"
+           onclick="filterByCategory('@cat.CategoryId')"
+           class="cat-pill @(Model.SelectedCategoryId == cat.CategoryId ? "active" : "")">
+            @cat.CategoryName
+        </a>
+    }
 </div>
 
-<a href="@Url.Action("Index", "Home")" class="back-link">
-    ← Quay về Trang Chủ Khám Phá Công Thức
-</a>
+<!-- Tiêu đề số lượng món & Menu Sắp xếp -->
+<div class="section-header">
+    <h3 class="section-title">
+        Tất cả công thức đã duyệt
+        <span class="count-badge">@Model.TotalItems món @(Model.TotalPages > 1 ? $"(Trang {Model.CurrentPage}/{Model.TotalPages})" : "")</span>
+    </h3>
+
+    <div class="sort-box-wrap">
+        <label for="sortSelect" class="sort-select-label">Sắp xếp:</label>
+        <select id="sortSelect"
+                class="sort-select-input"
+                onchange="document.getElementById('hiddenSortBy').value = this.value; document.getElementById('filterForm').submit();">
+            <option value="newest" @(Model.SortBy == "newest" || string.IsNullOrEmpty(Model.SortBy) ? "selected" : "")>Mới nhất</option>
+            <option value="rating" @(Model.SortBy == "rating" ? "selected" : "")>Đánh giá cao nhất (★)</option>
+            <option value="time_asc" @(Model.SortBy == "time_asc" ? "selected" : "")>Thời gian nấu nhanh nhất (⏱)</option>
+            <option value="name_asc" @(Model.SortBy == "name_asc" ? "selected" : "")>Tên món ăn (A - Z)</option>
+        </select>
+    </div>
+</div>
+
+<!-- Lưới danh sách món ăn từ Database -->
+@if (!Model.Recipes.Any())
+{
+    <div class="empty-recipes-box">
+        <p class="empty-recipes-text">
+            Không tìm thấy món ăn nào phù hợp với điều kiện lọc hiện tại.
+        </p>
+        <a href="@Url.Action("Index", "Home")" class="btn-reset-filters">
+            Xem lại tất cả món ăn
+        </a>
+    </div>
+}
+else
+{
+    <div class="recipe-grid">
+        @foreach (var item in Model.Recipes)
+        {
+            bool isSaved = false;
+            if (ViewBag.SavedRecipeIds != null)
+            {
+                int[] savedIds = (int[])ViewBag.SavedRecipeIds;
+                isSaved = savedIds.Contains(item.RecipeId);
+            }
+
+            <article class="recipe-card" onclick="openDetailModal(@item.RecipeId)">
+
+                @{
+                    string homeImgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                        ? Url.Content("~/Content/images/pancake.jpg")
+                        : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                            ? Url.Content(item.ImageUrl)
+                            : (item.ImageUrl.StartsWith("Uploads/"))
+                                ? Url.Content("~/" + item.ImageUrl)
+                                : Url.Content("~/Content/images/" + item.ImageUrl);
+                }
+                <div class="card-img-wrap">
+                    <!-- Badge thời gian -->
+                    <span class="time-badge">⏱ @item.CookTime phút</span>
+
+                    <!-- Ảnh đại diện món ăn -->
+                    <img src="@homeImgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+
+                    <!-- Nút Trái Tim nổi góc trên bên phải ảnh -->
+                    @if (Request.IsAuthenticated && Session["UserID"] is int)
+                    {
+                        <button type="button" class="btn-heart-toggle @(isSaved ? "saved" : "")"
+                                data-recipe-id="@item.RecipeId"
+                                data-url="@Url.Action("ToggleSaved", "Home", new { area = "" })"
+                                title="@(isSaved ? "Bỏ lưu món này" : "Lưu món này")"
+                                onclick="event.stopPropagation(); toggleSaved(@item.RecipeId, this, false);">♥</button>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Login", "Account", new { area = "" })"
+                           class="btn-heart-toggle" title="Đăng nhập để lưu món" onclick="event.stopPropagation();">♡</a>
+                    }
+                </div>
+
+                <div class="card-content">
+                    <div class="card-meta-row">
+                        <span class="cat-label">@item.CategoryName</span>
+                        @if (item.RatingCount > 0 && item.AvgRating.HasValue)
+                        {
+                            <span class="card-rating-badge">
+                                ★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="card-rating-new">☆ Mới (0)</span>
+                        }
+                    </div>
+                    <h4 class="recipe-title">@item.Title</h4>
+                    <p class="recipe-desc">@item.Description</p>
+
+                    <!-- HIỂN THỊ ĐẦY ĐỦ TAG NGUYÊN LIỆU TRÊN THẺ MÓN ĂN (SẮP XẾP THEO THỨ TỰ GỐC, KHÔNG GIỚI HẠN TAKE) -->
+                    <div class="recipe-tags-wrap">
+                        @if (!string.IsNullOrWhiteSpace(item.Ingredients))
+                        {
+                            var cardIngs = item.Ingredients.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => x.Trim())
+                                .Where(x => !string.IsNullOrWhiteSpace(x));
+                            foreach (var ingName in cardIngs)
+                            {
+                                <span class="recipe-tag-pill">@ingName</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="recipe-tag-pill">Gia vị chuẩn</span>
+                        }
+                    </div>
+
+                    <!-- HIỂN THỊ TÁC GIẢ ĐỘNG THEO TỪNG MÓN -->
+                    <div class="card-author-footer">
+                        <span>
+                            Đầu bếp: <strong class="card-author-name">@item.AuthorName</strong>
+                        </span>
+                    </div>
+                </div>
+
+            </article>
+        }
+    </div>
+
+    <!-- THANH PHÂN TRANG CHUẨN BUỔI 06 (SKIP & TAKE) -->
+    if (Model.TotalPages > 1)
+    {
+        <div class="store-pagination">
+            @* Nút quay về trang trước *@
+            @if (Model.CurrentPage > 1)
+            {
+                <a href="@Url.Action("Index", "Home", new {
+                    categoryId = Model.SelectedCategoryId,
+                    keyword = Model.Keyword,
+                    sortBy = Model.SortBy,
+                    ingredients = (Model.SelectedIngredients != null && Model.SelectedIngredients.Any()) ? string.Join(",", Model.SelectedIngredients) : null,
+                    page = Model.CurrentPage - 1
+                })" class="page-nav-btn" title="Trang trước">← Trước</a>
+            }
+
+            @* Danh sách các số trang *@
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == Model.CurrentPage)
+                {
+                    <span class="page-num-btn active">@i</span>
+                }
+                else
+                {
+                    <a href="@Url.Action("Index", "Home", new {
+                        categoryId = Model.SelectedCategoryId,
+                        keyword = Model.Keyword,
+                        sortBy = Model.SortBy,
+                        ingredients = (Model.SelectedIngredients != null && Model.SelectedIngredients.Any()) ? string.Join(",", Model.SelectedIngredients) : null,
+                        page = i
+                    })" class="page-num-btn">@i</a>
+                }
+            }
+
+            @* Nút chuyển sang trang sau *@
+            @if (Model.CurrentPage < Model.TotalPages)
+            {
+                <a href="@Url.Action("Index", "Home", new {
+                    categoryId = Model.SelectedCategoryId,
+                    keyword = Model.Keyword,
+                    sortBy = Model.SortBy,
+                    ingredients = (Model.SelectedIngredients != null && Model.SelectedIngredients.Any()) ? string.Join(",", Model.SelectedIngredients) : null,
+                    page = Model.CurrentPage + 1
+                })" class="page-nav-btn" title="Trang sau">Sau →</a>
+            }
+        </div>
+    }
+}

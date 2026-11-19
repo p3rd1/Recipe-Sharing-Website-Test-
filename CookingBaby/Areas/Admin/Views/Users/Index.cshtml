@@ -1,0 +1,221 @@
+@model IEnumerable<CookingBaby.Models.UserAdminViewModel>
+
+@{
+    ViewBag.Title = "Quản Lý Tài Khoản Thành Viên - Cooking Baby";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string currentSearch = ViewBag.Search as string ?? "";
+    string currentRole = ViewBag.Role as string ?? "";
+    bool? currentIsActive = ViewBag.IsActive as bool?;
+    int currentAdminId = Session["UserID"] is int ? (int)Session["UserID"] : 0;
+}
+
+<div class="breadcrumb-bar">
+    <a href="@Url.Action("Index", "Home", new { area = "" })">Trang Chủ</a>
+    <span class="breadcrumb-separator">›</span>
+    <span class="breadcrumb-current">Quản Lý Tài Khoản</span>
+</div>
+
+<div class="admin-toolbar admin-toolbar-top">
+    <div>
+        <h2 class="admin-title">QUẢN LÝ TÀI KHOẢN THÀNH VIÊN</h2>
+        <p class="admin-subtitle">Danh sách tài khoản hệ thống Cooking Baby — Tìm kiếm, Phân quyền và Khóa / Mở khóa</p>
+    </div>
+    <div class="header-right-actions">
+        <span class="btn-add-category cursor-default">
+            👥 Tổng cộng: @Model.Count() tài khoản
+        </span>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div role="alert" class="admin-alert admin-alert-success">
+        ✔ @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div role="alert" class="admin-alert admin-alert-error">
+        ⚠ @TempData["ErrorMessage"]
+    </div>
+}
+
+<!-- KHUNG TÌM KIẾM & BỘ LỌC TÀI KHOẢN (FULL WIDTH DASHBOARD BAR) -->
+<div class="user-filter-card">
+    @using (Html.BeginForm("Index", "Users", new { area = "Admin" }, FormMethod.Get, new { @class = "user-filter-form" }))
+    {
+        <div class="user-filter-row">
+            <div class="filter-input-search">
+                <input type="text" name="search" value="@currentSearch" class="form-input-search" placeholder="🔍 Tìm theo Tên hiển thị, Username, Email..." />
+            </div>
+
+            <div class="filter-select-box">
+                <select name="role" class="form-select-custom">
+                    <option value="">-- Tất cả vai trò --</option>
+                    <option value="Admin" @(currentRole == "Admin" ? "selected" : "")>🛡️ Admin (Quản trị viên)</option>
+                    <option value="User" @(currentRole == "User" ? "selected" : "")>👤 User (Thành viên)</option>
+                </select>
+            </div>
+
+            <div class="filter-select-box">
+                <select name="isActive" class="form-select-custom">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="true" @(currentIsActive == true ? "selected" : "")>✅ Đang hoạt động</option>
+                    <option value="false" @(currentIsActive == false ? "selected" : "")>🔒 Đã bị khóa</option>
+                </select>
+            </div>
+
+            <div class="filter-buttons-box">
+                <button type="submit" class="btn-filter-submit">
+                    <i class="fas fa-search"></i> Lọc Dữ Liệu
+                </button>
+                <a href="@Url.Action("Index", "Users", new { area = "Admin" })" class="btn-filter-reset">
+                    <i class="fas fa-undo"></i> Đặt Lại
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- BẢNG DANH SÁCH NGƯỜI DÙNG -->
+<div class="admin-table-wrap">
+    <table class="admin-table user-admin-table">
+        <colgroup>
+            <col style="width: 45px;" />
+            <col style="width: 145px;" />
+            <col style="width: 110px;" />
+            <col style="min-width: 165px;" />
+            <col style="width: 90px;" />
+            <col style="width: 90px;" />
+            <col style="width: 105px;" />
+            <col style="width: 115px;" />
+            <col style="width: 190px;" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th class="col-user-id">ID</th>
+                <th class="col-user-name">TÊN HIỂN THỊ</th>
+                <th class="col-user-username">TÊN ĐĂNG NHẬP</th>
+                <th class="col-user-email">EMAIL</th>
+                <th class="col-user-recipes text-center"><i class="fas fa-utensils"></i> CÔNG THỨC</th>
+                <th class="col-user-role text-center">VAI TRÒ</th>
+                <th class="col-user-created text-center">NGÀY TẠO</th>
+                <th class="col-user-status text-center">TRẠNG THÁI</th>
+                <th class="col-user-actions text-right">THAO TÁC</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="9" class="text-center empty-table-cell">
+                        Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                foreach (var user in Model)
+                {
+                    bool isSelf = user.UserId == currentAdminId;
+
+                    <tr>
+                        <td class="order-badge col-user-id">#@user.UserId</td>
+                        <td class="cat-title-cell col-user-name">
+                            <strong>@user.DisplayName</strong>
+                        </td>
+                        <td class="col-user-username">
+                            <span class="username-tag">@user.Username</span>
+                        </td>
+                        <td class="col-user-email">
+                            <span class="email-text">@user.Email</span>
+                        </td>
+                        <td class="col-user-recipes text-center">
+                            <span class="user-recipe-count-badge" title="@user.DisplayName đã đăng @user.RecipeCount công thức">
+                                <i class="fas fa-utensils"></i>
+                                <span>@user.RecipeCount</span>
+                            </span>
+                        </td>
+                        <td class="col-user-role text-center">
+                            @if (user.Role == "Admin")
+                            {
+                                <span class="user-role-badge role-admin"><i class="fas fa-shield-alt"></i> Admin</span>
+                            }
+                            else
+                            {
+                                <span class="user-role-badge role-user"><i class="fas fa-user"></i> User</span>
+                            }
+                        </td>
+                        <td class="table-date-cell col-user-created text-center">
+                            <div>@user.CreatedAt.ToString("dd/MM/yyyy")</div>
+                            <small class="text-muted">@user.CreatedAt.ToString("HH:mm")</small>
+                        </td>
+                        <td class="col-user-status text-center">
+                            @if (user.IsActive)
+                            {
+                                <span class="user-status-active"><i class="fas fa-check-circle"></i> Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="user-status-locked"><i class="fas fa-lock"></i> Đã khóa</span>
+                            }
+                        </td>
+                        <td class="col-user-actions text-right">
+                            @if (isSelf)
+                            {
+                                <span class="author-self-badge">(Tài khoản hiện tại)</span>
+                            }
+                            else
+                            {
+                                <div class="admin-row-actions">
+                                    <!-- Nút Khóa / Mở khóa -->
+                                    @using (Html.BeginForm("ToggleActive", "Users", new { area = "Admin", id = user.UserId }, FormMethod.Post, new { @class = "admin-inline-form" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        if (user.IsActive)
+                                        {
+                                            <button type="submit" class="btn-user-lock"
+                                                    onclick="return confirm('Bạn có chắc muốn KHÓA tài khoản &quot;@user.DisplayName&quot;?');"
+                                                    title="Khóa tài khoản này">
+                                                <i class="fas fa-lock"></i> Khóa
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit" class="btn-user-unlock"
+                                                    onclick="return confirm('Bạn có chắc muốn MỞ KHÓA tài khoản &quot;@user.DisplayName&quot;?');"
+                                                    title="Mở khóa tài khoản này">
+                                                <i class="fas fa-unlock"></i> Mở
+                                            </button>
+                                        }
+                                    }
+
+                                    <!-- Nút Chuyển quyền Admin / User -->
+                                    @using (Html.BeginForm("ChangeRole", "Users", new { area = "Admin", id = user.UserId }, FormMethod.Post, new { @class = "admin-inline-form" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        string targetRole = user.Role == "Admin" ? "User" : "Admin";
+                                        string btnClass = user.Role == "Admin" ? "btn-role-demote" : "btn-role-promote";
+                                        string btnIcon = user.Role == "Admin" ? "fa-user-minus" : "fa-user-shield";
+                                        string btnLabel = user.Role == "Admin" ? "Hạ quyền" : "Lên Admin";
+                                        <input type="hidden" name="newRole" value="@targetRole" />
+                                        <button type="submit" class="@btnClass"
+                                                onclick="return confirm('Xác nhận đổi quyền tài khoản &quot;@user.DisplayName&quot; sang @targetRole?');"
+                                                title="Đổi quyền hạn sang @targetRole">
+                                            <i class="fas @btnIcon"></i> @btnLabel
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<a href="@Url.Action("Index", "Home", new { area = "" })" class="back-link">
+    ← Quay về Trang Chủ
+</a>

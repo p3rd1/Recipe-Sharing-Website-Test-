@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace CookingBaby.Models
@@ -10,10 +11,22 @@ namespace CookingBaby.Models
         [Display(Name = "Tên đăng nhập")]
         public string UserName { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập tên hiển thị.")]
-        [StringLength(100)]
+        private string _displayName;
+
         [Display(Name = "Họ tên / Tên hiển thị")]
-        public string FullName { get; set; }
+        public string FullName
+        {
+            get { return _displayName; }
+            set { _displayName = value; }
+        }
+
+        [Display(Name = "Tên hiển thị")]
+        [StringLength(100, ErrorMessage = "Tên hiển thị tối đa 100 ký tự.")]
+        public string DisplayName
+        {
+            get { return _displayName; }
+            set { _displayName = value; }
+        }
 
         [Required(ErrorMessage = "Vui lòng nhập địa chỉ email.")]
         [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
@@ -44,5 +57,17 @@ namespace CookingBaby.Models
         [DataType(DataType.Password)]
         [Display(Name = "Mật khẩu")]
         public string Password { get; set; }
+    }
+
+    public class UserAdminViewModel
+    {
+        public int UserId { get; set; }
+        public string Username { get; set; }
+        public string DisplayName { get; set; }
+        public string Email { get; set; }
+        public string Role { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int RecipeCount { get; set; }
     }
 }

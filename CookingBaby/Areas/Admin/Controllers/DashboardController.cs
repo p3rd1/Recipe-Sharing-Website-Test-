@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -230,6 +230,56 @@ namespace CookingBaby.Areas.Admin.Controllers
                 TempData["AdminError"] = "Lỗi khi ẩn món: " + ex.Message;
             }
             return RedirectToAction("Index");
+        }
+
+        // ===== BACKUP: Quản Lý Tài Khoản qua /Admin/Dashboard/Users =====
+        public ActionResult Users()
+        {
+            var users = db.Users
+                .OrderByDescending(u => u.CreatedAt)
+                .ToList();
+
+            ViewBag.IsAdminPage = true;
+            ViewBag.ActiveTab = "Users";
+            return View("~/Areas/Admin/Views/Users/Index.cshtml", users);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ToggleActive(int id)
+        {
+            try
+            {
+                int currentAdminId = (int)Session["UserID"];
+                if (id == currentAdminId)
+                {
+                    TempData["ErrorMessage"] = "Bạn không thể khóa chính tài khoản đang đăng nhập của mình!";
+                    return RedirectToAction("Users");
+                }
+
+                var user = db.Users.Find(id);
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy tài khoản cần thao tác.";
+                    return RedirectToAction("Users");
+                }
+
+                db.Configuration.ValidateOnSaveEnabled = false;
+
+                user.IsActive = !user.IsActive;
+                db.SaveChanges();
+
+                db.Configuration.ValidateOnSaveEnabled = true;
+
+                string action = user.IsActive ? "mở khóa" : "khóa";
+                TempData["SuccessMessage"] = $"Đã {action} tài khoản \"{user.DisplayName}\" ({user.Username}) thành công!";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Có lỗi xảy ra: " + ex.Message;
+            }
+
+            return RedirectToAction("Users");
         }
 
         protected override void Dispose(bool disposing)

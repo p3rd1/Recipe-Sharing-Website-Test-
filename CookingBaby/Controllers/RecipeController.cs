@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.SqlClient;
@@ -15,7 +15,13 @@ namespace CookingBaby.Controllers
     {
         private CookingBabyDBEntities db = new CookingBabyDBEntities();
 
-        private int CurrentUserId { get { return (int)Session["UserID"]; } }
+        private int CurrentUserId { get { return Session["UserID"] is int id ? id : 0; } }
+
+        // Điều hướng /Recipe hoặc /Recipe/Index về /Home/Index để tránh 404
+        public ActionResult Index(int? categoryId, string keyword, string[] ingredients, string sortBy = "newest")
+        {
+            return RedirectToAction("Index", "Home", new { categoryId, keyword, ingredients, sortBy });
+        }
 
         // 1. TAB QUẢN LÝ CÁ NHÂN (MÓN CỦA TÔI)
         [SessionAuthorize]
@@ -23,24 +29,85 @@ namespace CookingBaby.Controllers
         {
             int chefId = CurrentUserId;
 
-            string query = "SELECT * FROM dbo.vw_RecipeCards WHERE AuthorId = @p0 AND Status != N'Đã ẩn' ORDER BY CreatedAt DESC";
-            var myRecipes = db.Database.SqlQuery<RecipeCardViewModel>(query, chefId).ToList();
+            List<RecipeCardViewModel> myRecipes;
+            try
+            {
+                string query = "SELECT * FROM dbo.vw_RecipeCards WHERE AuthorId = @p0 AND Status != N'Đã ẩn' ORDER BY CreatedAt DESC";
+                myRecipes = db.Database.SqlQuery<RecipeCardViewModel>(query, chefId).ToList();
+            }
+            catch
+            {
+                // Fallback Entity Framework LINQ: Chạy an toàn khi chuyển máy mới
+                var raw = db.Recipes
+                    .Include(r => r.Category)
+                    .Include(r => r.User1)
+                    .Include(r => r.RecipeIngredients)
+                    .Include(r => r.Ratings)
+                    .Where(r => r.AuthorId == chefId && r.Status != "Đã ẩn")
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToList();
+
+                myRecipes = raw.Select(r => new RecipeCardViewModel
+                {
+                    RecipeId = r.RecipeId,
+                    Title = r.Title,
+                    Description = r.Description,
+                    CookTime = r.CookTime,
+                    ImageUrl = r.ImageUrl,
+                    Status = r.Status,
+                    CreatedAt = r.CreatedAt,
+                    CategoryId = r.CategoryId,
+                    CategoryName = r.Category != null ? r.Category.CategoryName : "",
+                    AuthorId = r.AuthorId,
+                    AuthorName = r.User1 != null ? r.User1.DisplayName : "Thành viên",
+                    AvgRating = r.Ratings.Any() ? (decimal?)Math.Round((decimal)r.Ratings.Average(rt => (double)rt.Stars), 1) : null,
+                    RatingCount = r.Ratings.Count(),
+                    Ingredients = string.Join(", ", r.RecipeIngredients.OrderBy(ri => ri.SortOrder).Select(ri => ri.IngredientName))
+                }).ToList();
+            }
 
             return View(myRecipes);
         }
 
+        // Trang chi tiết món ăn độc lập /Recipe/Details/{id}
         public ActionResult Details(int id)
         {
             var recipe = db.Recipes
                 .Include(r => r.Category)
                 .Include(r => r.User1)
+                .Include(r => r.RecipeIngredients)
+                .Include(r => r.RecipeSteps)
+                .Include(r => r.Ratings.Select(rt => rt.User))
+                .Include(r => r.Comments.Select(c => c.User))
                 .FirstOrDefault(r => r.RecipeId == id);
 
             if (recipe == null || (recipe.Status != "Đã duyệt" &&
                 !(Session["Role"] as string == "Admin" ||
                   (Session["UserID"] is int && (int)Session["UserID"] == recipe.AuthorId))))
                 return HttpNotFound();
+
+            int currentUserId = Session["UserID"] is int ? (int)Session["UserID"] : 0;
+            ViewBag.IsSaved = currentUserId > 0 && db.SavedRecipes.Any(s => s.UserId == currentUserId && s.RecipeId == id);
+            ViewBag.CurrentUserId = currentUserId;
+
             return View(recipe);
+        }
+
+        // Trang thêm món mới độc lập /Recipe/Create
+        [HttpGet]
+        [SessionAuthorize]
+        public ActionResult Create()
+        {
+            ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName");
+            return View();
+        }
+
+        [HttpPost]
+        [SessionAuthorize]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create(Recipe recipe, HttpPostedFileBase ImageFile, string IngredientsList, string Instructions, string StepsList)
+        {
+            return CreateRecipe(recipe, ImageFile, IngredientsList, Instructions, StepsList);
         }
 
         [HttpGet]
@@ -390,29 +457,40 @@ namespace CookingBaby.Controllers
             {
                 int userId = CurrentUserId;
 
-                // Truy vấn LINQ bảng SavedRecipes kết hợp Recipe, Category, User, Ratings
-                var recipes = db.SavedRecipes
+                // Truy vấn LINQ bảng SavedRecipes kết hợp Eager Loading: Recipe, Category, User, Ratings, RecipeIngredients
+                var savedItems = db.SavedRecipes
+                    .Include(s => s.Recipe)
+                    .Include(s => s.Recipe.Category)
+                    .Include(s => s.Recipe.User1)
+                    .Include(s => s.Recipe.Ratings)
+                    .Include(s => s.Recipe.RecipeIngredients)
                     .Where(s => s.UserId == userId && s.Recipe.Status != "Đã ẩn")
                     .OrderByDescending(s => s.SavedAt)
-                    .Select(s => new RecipeCardViewModel
-                    {
-                        RecipeId = s.Recipe.RecipeId,
-                        Title = s.Recipe.Title,
-                        Description = s.Recipe.Description,
-                        CookTime = s.Recipe.CookTime,
-                        ImageUrl = s.Recipe.ImageUrl,
-                        CategoryId = s.Recipe.CategoryId,
-                        CategoryName = s.Recipe.Category.CategoryName,
-                        AuthorName = s.Recipe.User1 != null
-                            ? s.Recipe.User1.DisplayName
-                            : "Không xác định",
-                        Status = s.Recipe.Status,
-                        RatingCount = s.Recipe.Ratings.Count(),
-                        AvgRating = s.Recipe.Ratings
-                            .Select(r => (decimal?)r.Stars)
-                            .Average()
-                    })
                     .ToList();
+
+                var recipes = savedItems.Select(s => new RecipeCardViewModel
+                {
+                    RecipeId = s.Recipe.RecipeId,
+                    AuthorId = s.Recipe.AuthorId,
+                    Title = s.Recipe.Title,
+                    Description = s.Recipe.Description,
+                    CookTime = s.Recipe.CookTime,
+                    ImageUrl = s.Recipe.ImageUrl,
+                    CategoryId = s.Recipe.CategoryId,
+                    CategoryName = s.Recipe.Category != null ? s.Recipe.Category.CategoryName : "Món ngon",
+                    AuthorName = s.Recipe.User1 != null
+                        ? (!string.IsNullOrWhiteSpace(s.Recipe.User1.DisplayName) ? s.Recipe.User1.DisplayName : s.Recipe.User1.Username)
+                        : "Không xác định",
+                    Status = s.Recipe.Status,
+                    RatingCount = s.Recipe.Ratings != null ? s.Recipe.Ratings.Count : 0,
+                    AvgRating = (s.Recipe.Ratings != null && s.Recipe.Ratings.Any())
+                        ? (decimal?)s.Recipe.Ratings.Average(r => r.Stars)
+                        : null,
+                    Ingredients = (s.Recipe.RecipeIngredients != null && s.Recipe.RecipeIngredients.Any())
+                        ? string.Join(", ", s.Recipe.RecipeIngredients.OrderBy(ri => ri.SortOrder).Select(ri => ri.IngredientName))
+                        : "",
+                    CreatedAt = s.Recipe.CreatedAt
+                }).ToList();
 
                 return View(recipes);
             }
@@ -501,6 +579,167 @@ namespace CookingBaby.Controllers
                     );
                 }
             }
+        }
+
+        // ====================================================================
+        // API TƯƠNG TÁC: LƯU SỔ TAY, ĐÁNH GIÁ SAO VÀ BÌNH LUẬN CHO TRANG RECIPE
+        // ====================================================================
+        [AcceptVerbs(HttpVerbs.Get | HttpVerbs.Post)]
+        public JsonResult ToggleSaved(int? recipeId, int? id)
+        {
+            try
+            {
+                int targetId = recipeId ?? id ?? 0;
+
+                // 1. Kiểm tra tham số recipeId <= 0 (DevTools test: recipeId = -1)
+                if (targetId <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Mã công thức không hợp lệ."
+                    }, JsonRequestBehavior.AllowGet);
+                }
+
+                // 2. Kiểm tra công thức có tồn tại trong CSDL không (DevTools test: recipeId = 99999)
+                var recipe = db.Recipes.Find(targetId);
+                if (recipe == null)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Công thức không tồn tại hoặc đã bị xóa."
+                    }, JsonRequestBehavior.AllowGet);
+                }
+
+                // 3. Kiểm tra đăng nhập (Bước 1: Khách bấm tim trên thẻ món hợp lệ)
+                int currentUserId = 0;
+                if (Session["UserID"] is int uid)
+                {
+                    currentUserId = uid;
+                }
+                else if (Session["UserID"] != null && int.TryParse(Session["UserID"].ToString(), out int parsedUid))
+                {
+                    currentUserId = parsedUid;
+                }
+
+                if (currentUserId <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        requireLogin = true,
+                        message = "Vui lòng đăng nhập để lưu công thức này vào sổ tay!"
+                    }, JsonRequestBehavior.AllowGet);
+                }
+
+                // 4. Tìm bản ghi và thực hiện Lưu / Bỏ lưu
+                var savedRecord = db.SavedRecipes.FirstOrDefault(s => s.RecipeId == targetId && s.UserId == currentUserId);
+                bool isSaved = false;
+                if (savedRecord != null)
+                {
+                    db.SavedRecipes.Remove(savedRecord);
+                    isSaved = false;
+                }
+                else
+                {
+                    db.SavedRecipes.Add(new SavedRecipe
+                    {
+                        UserId = currentUserId,
+                        RecipeId = targetId,
+                        SavedAt = DateTime.Now
+                    });
+                    isSaved = true;
+                }
+
+                db.SaveChanges();
+
+                return Json(new
+                {
+                    success = true,
+                    isSaved = isSaved,
+                    message = isSaved ? "Đã lưu vào sổ tay thành công!" : "Đã bỏ lưu công thức."
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Lỗi hệ thống khi lưu công thức: " + ex.Message
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        public JsonResult RateRecipe(int? id, int? recipeId, int? stars)
+        {
+            if (Session["UserID"] == null)
+            {
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để đánh giá." });
+            }
+
+            int currentUserId = Session["UserID"] is int uid ? uid : Convert.ToInt32(Session["UserID"]);
+            int targetId = id ?? recipeId ?? 0;
+            int starCount = stars ?? 5;
+
+            if (targetId <= 0 || db.Recipes.Find(targetId) == null)
+            {
+                return Json(new { success = false, message = "Công thức không tồn tại." });
+            }
+
+            var rating = db.Ratings.FirstOrDefault(r => r.RecipeId == targetId && r.UserId == currentUserId);
+            if (rating != null)
+            {
+                rating.Stars = (byte)Math.Max(1, Math.Min(5, starCount));
+                rating.CreatedAt = DateTime.Now;
+            }
+            else
+            {
+                db.Ratings.Add(new Rating
+                {
+                    RecipeId = targetId,
+                    UserId = currentUserId,
+                    Stars = (byte)Math.Max(1, Math.Min(5, starCount)),
+                    CreatedAt = DateTime.Now
+                });
+            }
+            db.SaveChanges();
+
+            return Json(new { success = true, message = "Đánh giá thành công!" });
+        }
+
+        [HttpPost]
+        public JsonResult AddComment(int? id, int? recipeId, string content)
+        {
+            if (Session["UserID"] == null)
+            {
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để bình luận." });
+            }
+
+            int currentUserId = Session["UserID"] is int uid ? uid : Convert.ToInt32(Session["UserID"]);
+            int targetId = id ?? recipeId ?? 0;
+
+            if (targetId <= 0 || db.Recipes.Find(targetId) == null)
+            {
+                return Json(new { success = false, message = "Công thức không tồn tại." });
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return Json(new { success = false, message = "Nội dung bình luận không được để trống." });
+            }
+
+            db.Comments.Add(new Comment
+            {
+                RecipeId = targetId,
+                UserId = currentUserId,
+                Content = content.Trim(),
+                CreatedAt = DateTime.Now
+            });
+            db.SaveChanges();
+
+            return Json(new { success = true, message = "Bình luận thành công!" });
         }
 
         protected override void Dispose(bool disposing)

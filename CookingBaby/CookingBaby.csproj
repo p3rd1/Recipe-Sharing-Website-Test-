@@ -128,6 +128,7 @@
   <ItemGroup>
     <Compile Include="Areas\Admin\AdminAreaRegistration.cs" />
     <Compile Include="Areas\Admin\Controllers\DashboardController.cs" />
+    <Compile Include="Areas\Admin\Controllers\UsersController.cs" />
     <Compile Include="Areas\Admin\Models\AdminDashboardViewModel.cs" />
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
@@ -205,6 +206,24 @@
     <Content Include="Content\images\supbido.jpg" />
     <Content Include="Content\images\tomxaotrungcachua.jpg" />
     <Content Include="Content\images\trungchan.jpeg" />
+    <Content Include="Content\images\banhchuoiyenmach.jpg" />
+    <Content Include="Content\images\banhflan.jpg" />
+    <Content Include="Content\images\banhminuongchabong.jpg" />
+    <Content Include="Content\images\bone.jpg" />
+    <Content Include="Content\images\bonglanphomaitrungmuoi.jpg" />
+    <Content Include="Content\images\cahoisotbochanh.jpeg" />
+    <Content Include="Content\images\canhchuacaloc.jpg" />
+    <Content Include="Content\images\canhkimchi.jpg" />
+    <Content Include="Content\images\chedaudohatsen.jpg" />
+    <Content Include="Content\images\comcuonrongbien.jpg" />
+    <Content Include="Content\images\comtronchay.jpg" />
+    <Content Include="Content\images\dauhucuonrongbien.jpg" />
+    <Content Include="Content\images\dauhunhoithitsotcachua.jpg" />
+    <Content Include="Content\images\goicuontomthit.jpg" />
+    <Content Include="Content\images\miybittetbotrung.jpg" />
+    <Content Include="Content\images\phobotailan.jpg" />
+    <Content Include="Content\images\raucaudualadua.jpg" />
+    <Content Include="Content\images\tomchientraidua.jpg" />
     <Content Include="favicon.ico" />
     <Content Include="fonts\glyphicons-halflings-regular.svg" />
     <Content Include="Global.asax" />
@@ -250,6 +269,7 @@
     <Content Include="Areas\Admin\Views\Web.config" />
     <Content Include="Areas\Admin\Views\_ViewStart.cshtml" />
     <Content Include="Areas\Admin\Views\Dashboard\Index.cshtml" />
+    <Content Include="Areas\Admin\Views\Users\Index.cshtml" />
     <Content Include="Views\Web.config" />
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />

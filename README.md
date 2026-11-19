@@ -23,8 +23,8 @@ Cấu trúc thư mục liên quan:
 Recipe-Sharing-Website-Test-/
 ├── CookingBaby.sln
 ├── Database/
-│   ├── SQLQueryckb.sql              <- file cần chạy trên SSMS
-│   └── CookingBaby_Database.sql     <- bản tạo CSDL cũ hơn (không cần chạy nếu đã chạy SQLQueryckb.sql)
+│   ├── SQLQueryckb.sql          <- file SQL duy nhất cần chạy trên SSMS
+│   └── CookingBaby_Database.sql <- bản cũ, không cần chạy
 └── CookingBaby/
     └── Web.config                   <- file cần chỉnh data source
 ```
@@ -81,7 +81,7 @@ Script thực hiện theo thứ tự:
 |---|---|
 | Đầu file | Tạo database `CookingBabyDB` (collation `Vietnamese_CI_AS`) nếu chưa có |
 | Tiếp theo | `DROP TABLE IF EXISTS` rồi tạo lại 8 bảng: `Users`, `Categories`, `Recipes`, `RecipeIngredients`, `RecipeSteps`, `Ratings`, `Comments`, `SavedRecipes` |
-| Tiếp theo | Tạo các view, stored procedure và dữ liệu mẫu (4 tài khoản, danh mục, 5 công thức, nguyên liệu, các bước, đánh giá, bình luận) |
+| Tiếp theo | Tạo các view, stored procedure và dữ liệu mẫu (4 tài khoản, danh mục, 20 công thức, nguyên liệu, các bước, đánh giá, bình luận) |
 | Cuối file | Thêm 4 cột vào `Users` (`LastLoginAt`, `FailedLoginCount`, `LockoutEnd`, `PasswordChangedAt`) và đặt lại mật khẩu cho 4 tài khoản mẫu |
 
 > ⚠️ **Cảnh báo mất dữ liệu:** Phần đầu script **xóa toàn bộ 8 bảng rồi tạo lại**. Nếu `CookingBabyDB` đã có dữ liệu thật, hãy **backup trước** (chuột phải database → *Tasks → Back Up...*). Chạy lại script sẽ đưa dữ liệu về trạng thái mẫu.
@@ -96,7 +96,7 @@ Script thực hiện theo thứ tự:
    SELECT UserId, Username, Role, IsActive FROM dbo.Users;
    SELECT COUNT(*) AS SoCongThuc FROM dbo.Recipes;
    ```
-   Kết quả mong đợi: 4 tài khoản và 5 công thức.
+   Kết quả mong đợi: 4 tài khoản và 20 công thức.
 
 ### Tài khoản mẫu để đăng nhập website
 
