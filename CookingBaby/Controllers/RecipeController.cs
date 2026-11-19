@@ -98,7 +98,7 @@ namespace CookingBaby.Controllers
         [SessionAuthorize]
         public ActionResult Create()
         {
-            ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName");
+            PopulateCreateCategories();
             return View();
         }
 
@@ -170,7 +170,8 @@ namespace CookingBaby.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+                System.Diagnostics.Debug.WriteLine("Lỗi tải chi tiết công thức: " + ex.Message);
+                return Json(new { success = false, message = "Chưa thể tải công thức lúc này. Vui lòng thử lại." }, JsonRequestBehavior.AllowGet);
             }
         }
 
@@ -180,18 +181,22 @@ namespace CookingBaby.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult CreateRecipe(Recipe recipe, HttpPostedFileBase ImageFile, string IngredientsList, string Instructions, string StepsList)
         {
+            string rawSteps = !string.IsNullOrWhiteSpace(Instructions) ? Instructions : StepsList;
             try
             {
+                using (var transaction = db.Database.BeginTransaction())
+                {
                 db.Configuration.ValidateOnSaveEnabled = false;
-
-                string rawSteps = !string.IsNullOrWhiteSpace(Instructions) ? Instructions : StepsList;
 
                 if (string.IsNullOrWhiteSpace(recipe.Title) ||
                     string.IsNullOrWhiteSpace(IngredientsList) ||
                     string.IsNullOrWhiteSpace(rawSteps))
                 {
-                    TempData["ErrorMessage"] = "Vui lòng nhập đầy đủ Tên món ăn, Nguyên liệu và Các bước thực hiện!";
-                    return RedirectToAction("MyRecipes");
+                    ModelState.AddModelError(string.Empty, "Vui lòng nhập đầy đủ Tên món ăn, Nguyên liệu và Các bước thực hiện.");
+                    PopulateCreateCategories(recipe.CategoryId);
+                    ViewBag.IngredientsString = IngredientsList ?? string.Empty;
+                    ViewBag.InstructionsString = rawSteps ?? string.Empty;
+                    return View("Create", recipe);
                 }
 
                 recipe.AuthorId = CurrentUserId;
@@ -223,16 +228,26 @@ namespace CookingBaby.Controllers
                 // Lưu danh sách quan hệ 1-N
                 SaveIngredientsHelper(recipe.RecipeId, IngredientsList);
                 SaveStepsHelper(recipe.RecipeId, rawSteps);
+                transaction.Commit();
 
                 TempData["SuccessMessage"] = "Đăng công thức mới thành công! Bài viết đang chờ Ban Quản Trị duyệt.";
                 return RedirectToAction("MyRecipes");
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Lỗi CreateRecipe: " + ex.Message);
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi đăng bài: " + ex.Message;
-                return RedirectToAction("MyRecipes");
+                ModelState.AddModelError(string.Empty, "Không thể đăng công thức lúc này. Vui lòng kiểm tra dữ liệu và thử lại.");
+                PopulateCreateCategories(recipe.CategoryId);
+                ViewBag.IngredientsString = IngredientsList ?? string.Empty;
+                ViewBag.InstructionsString = rawSteps ?? string.Empty;
+                return View("Create", recipe);
             }
+        }
+
+        private void PopulateCreateCategories(int? selectedCategoryId = null)
+        {
+            ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName", selectedCategoryId);
         }
 
         // 3. SỬA MÓN ĂN (GET: Hỗ trợ cả /Recipe/Edit và /Recipe/EditRecipe)
@@ -295,6 +310,8 @@ namespace CookingBaby.Controllers
         {
             try
             {
+                using (var transaction = db.Database.BeginTransaction())
+                {
                 db.Configuration.ValidateOnSaveEnabled = false;
 
                 bool hasError = false;
@@ -326,6 +343,7 @@ namespace CookingBaby.Controllers
 
                 if (hasError)
                 {
+                    transaction.Rollback();
                     ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName", recipe.CategoryId);
                     ViewBag.IngredientsString = IngredientsList ?? "";
                     ViewBag.InstructionsString = Instructions ?? "";
@@ -369,14 +387,16 @@ namespace CookingBaby.Controllers
                 // Cập nhật quan hệ 1-N: RecipeIngredients & RecipeSteps
                 SaveIngredientsHelper(recipe.RecipeId, IngredientsList);
                 SaveStepsHelper(recipe.RecipeId, Instructions);
+                transaction.Commit();
 
                 TempData["SuccessMessage"] = "Cập nhật công thức thành công!";
                 return RedirectToAction("MyRecipes");
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Lỗi EditRecipe: " + ex.Message);
-                ModelState.AddModelError("", "Có lỗi xảy ra khi lưu dữ liệu: " + ex.Message);
+                ModelState.AddModelError("", "Không thể lưu công thức lúc này. Vui lòng kiểm tra dữ liệu và thử lại.");
             }
 
             ViewBag.CategoryId = new SelectList(db.Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName", recipe.CategoryId);
@@ -433,7 +453,8 @@ namespace CookingBaby.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa công thức: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi xóa công thức: " + ex.Message);
+                TempData["ErrorMessage"] = "Không thể xóa công thức lúc này. Vui lòng làm mới trang và thử lại.";
             }
 
             return RedirectToAction("MyRecipes");
@@ -663,16 +684,17 @@ namespace CookingBaby.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật sổ tay: " + ex.Message);
                 return Json(new
                 {
                     success = false,
-                    message = "Lỗi hệ thống khi lưu công thức: " + ex.Message
+                    message = "Chưa thể cập nhật sổ tay món ăn. Vui lòng thử lại."
                 }, JsonRequestBehavior.AllowGet);
             }
         }
 
         [HttpPost]
-        public JsonResult RateRecipe(int? id, int? recipeId, int? stars)
+        public JsonResult RateRecipe(int? id, int? recipeId, int? stars, string content)
         {
             if (Session["UserID"] == null)
             {
@@ -681,17 +703,27 @@ namespace CookingBaby.Controllers
 
             int currentUserId = Session["UserID"] is int uid ? uid : Convert.ToInt32(Session["UserID"]);
             int targetId = id ?? recipeId ?? 0;
-            int starCount = stars ?? 5;
-
             if (targetId <= 0 || db.Recipes.Find(targetId) == null)
             {
                 return Json(new { success = false, message = "Công thức không tồn tại." });
             }
 
+            int starCount = stars ?? 0;
+            if (starCount < 1 || starCount > 5)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn từ 1 đến 5 sao." });
+            }
+
+            content = (content ?? string.Empty).Trim();
+            if (content.Length > 1000)
+            {
+                return Json(new { success = false, message = "Bình luận đánh giá không được vượt quá 1000 ký tự." });
+            }
+
             var rating = db.Ratings.FirstOrDefault(r => r.RecipeId == targetId && r.UserId == currentUserId);
             if (rating != null)
             {
-                rating.Stars = (byte)Math.Max(1, Math.Min(5, starCount));
+                rating.Stars = (byte)starCount;
                 rating.CreatedAt = DateTime.Now;
             }
             else
@@ -700,13 +732,34 @@ namespace CookingBaby.Controllers
                 {
                     RecipeId = targetId,
                     UserId = currentUserId,
-                    Stars = (byte)Math.Max(1, Math.Min(5, starCount)),
+                    Stars = (byte)starCount,
                     CreatedAt = DateTime.Now
                 });
             }
-            db.SaveChanges();
-
-            return Json(new { success = true, message = "Đánh giá thành công!" });
+            try
+            {
+                using (var transaction = db.Database.BeginTransaction())
+                {
+                    if (!string.IsNullOrWhiteSpace(content))
+                    {
+                        db.Comments.Add(new Comment
+                        {
+                            RecipeId = targetId,
+                            UserId = currentUserId,
+                            Content = content,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                    db.SaveChanges();
+                    transaction.Commit();
+                }
+                return Json(new { success = true, message = "Đánh giá thành công!" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi lưu đánh giá: " + ex.Message);
+                return Json(new { success = false, message = "Chưa thể lưu đánh giá. Vui lòng thử lại." });
+            }
         }
 
         [HttpPost]
@@ -737,9 +790,16 @@ namespace CookingBaby.Controllers
                 Content = content.Trim(),
                 CreatedAt = DateTime.Now
             });
-            db.SaveChanges();
-
-            return Json(new { success = true, message = "Bình luận thành công!" });
+            try
+            {
+                db.SaveChanges();
+                return Json(new { success = true, message = "Bình luận thành công!" });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi lưu bình luận: " + ex.Message);
+                return Json(new { success = false, message = "Chưa thể gửi bình luận. Vui lòng thử lại." });
+            }
         }
 
         protected override void Dispose(bool disposing)

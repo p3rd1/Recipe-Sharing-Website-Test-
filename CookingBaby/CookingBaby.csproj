@@ -285,6 +285,8 @@
     <Content Include="Views\Shared\_CreateRecipeModal.cshtml" />
     <Content Include="Views\Shared\_RecipeDetailModal.cshtml" />
     <Content Include="Views\Recipe\MyRecipes.cshtml" />
+    <Content Include="Views\Recipe\Create.cshtml" />
+    <Content Include="Views\Recipe\Details.cshtml" />
     <Content Include="Views\Recipe\EditRecipe.cshtml" />
     <Content Include="Views\Recipe\SavedRecipes.cshtml" />
     <Content Include="Views\Shared\_NavbarTabs.cshtml" />

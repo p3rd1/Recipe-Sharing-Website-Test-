@@ -92,7 +92,8 @@ namespace CookingBaby.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật trạng thái tài khoản: " + ex.Message);
+                TempData["ErrorMessage"] = "Chưa thể cập nhật trạng thái tài khoản lúc này. Vui lòng thử lại.";
             }
 
             return RedirectToAction("Index");
@@ -133,7 +134,8 @@ namespace CookingBaby.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Lỗi khi cập nhật quyền hạn: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật quyền tài khoản: " + ex.Message);
+                TempData["ErrorMessage"] = "Chưa thể cập nhật quyền tài khoản lúc này. Vui lòng thử lại.";
             }
 
             return RedirectToAction("Index");

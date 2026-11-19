@@ -197,7 +197,8 @@ namespace CookingBaby.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                TempData["AdminError"] = "Lỗi khi duyệt món: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi duyệt công thức: " + ex.Message);
+                TempData["AdminError"] = "Chưa thể duyệt công thức lúc này. Vui lòng tải lại trang và thử lại.";
             }
             return RedirectToAction("Index");
         }
@@ -227,7 +228,8 @@ namespace CookingBaby.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                TempData["AdminError"] = "Lỗi khi ẩn món: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi ẩn công thức: " + ex.Message);
+                TempData["AdminError"] = "Chưa thể ẩn công thức lúc này. Vui lòng tải lại trang và thử lại.";
             }
             return RedirectToAction("Index");
         }
@@ -276,7 +278,8 @@ namespace CookingBaby.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Có lỗi xảy ra: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi thay đổi trạng thái tài khoản: " + ex.Message);
+                TempData["ErrorMessage"] = "Chưa thể cập nhật trạng thái tài khoản lúc này. Vui lòng thử lại.";
             }
 
             return RedirectToAction("Users");

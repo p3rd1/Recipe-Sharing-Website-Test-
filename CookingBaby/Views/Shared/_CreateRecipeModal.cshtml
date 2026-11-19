@@ -5,36 +5,46 @@
 
         <h3 class="modal-header-title">Đăng Chia Sẻ Công Thức Mới</h3>
         <p class="modal-header-desc">Công thức của bạn sẽ được gửi tới Ban Quản Trị duyệt trước khi công khai</p>
-        <hr style="border: 0; border-top: 1px solid #EDF2F7; margin-bottom: 20px;" />
+        <hr class="modal-divider" />
 
         @using (Html.BeginForm("CreateRecipe", "Recipe", FormMethod.Post, new { enctype = "multipart/form-data", id = "createRecipeForm", onsubmit = "return validateCreateModalForm();" }))
         {
             @Html.AntiForgeryToken()
 
             <div class="form-group-custom">
-                <label class="form-label-custom">Tên món ăn <span style="color:red;">*</span></label>
+                <label class="form-label-custom">Tên món ăn <span class="required-star">*</span></label>
                 <input type="text" name="Title" id="createTitle" required class="form-input-custom" placeholder="Ví dụ: Bánh Mì Nướng Bơ Tỏi" />
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-grid-2">
                 <div class="form-group-custom">
-                    <label class="form-label-custom">Danh mục Đầu Bếp Nhí <span style="color:red;">*</span></label>
-                    @Html.DropDownList("CategoryId", new SelectList(new CookingBaby.Models.CookingBabyDBEntities().Categories.OrderBy(c => c.DisplayOrder), "CategoryId", "CategoryName"), new { @class = "form-input-custom", required = "required" })
+                    <label class="form-label-custom">Danh mục Đầu Bếp Nhí <span class="required-star">*</span></label>
+                    @{
+                        List<SelectListItem> modalCategoryOptions;
+                        using (var modalDb = new CookingBaby.Models.CookingBabyDBEntities())
+                        {
+                            modalCategoryOptions = modalDb.Categories
+                                .OrderBy(c => c.DisplayOrder)
+                                .Select(c => new SelectListItem { Value = c.CategoryId.ToString(), Text = c.CategoryName })
+                                .ToList();
+                        }
+                    }
+                    @Html.DropDownList("CategoryId", modalCategoryOptions, new { @class = "form-input-custom", required = "required" })
                 </div>
                 <div class="form-group-custom">
-                    <label class="form-label-custom">Thời gian nấu (phút) <span style="color:red;">*</span></label>
+                    <label class="form-label-custom">Thời gian nấu (phút) <span class="required-star">*</span></label>
                     <input type="number" name="CookTime" id="createCookTime" value="15" min="1" max="1440" required class="form-input-custom" />
                 </div>
             </div>
 
             <div class="form-group-custom">
                 <label class="form-label-custom">Hình ảnh đại diện (.jpg, .png, .webp)</label>
-                <input type="file" name="ImageFile" id="createImageFile" accept=".jpg,.jpeg,.png,.webp" class="form-input-custom" style="padding-top: 7px;" onchange="previewCreateModalImage(this)" />
-                <div id="createPreviewBox" style="display:none; margin-top: 10px; padding: 10px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; align-items: center; gap: 12px;">
-                    <img id="createImagePreview" src="" alt="Xem trước" style="width: 100px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid #CBD5E1;" />
+                <input type="file" name="ImageFile" id="createImageFile" accept=".jpg,.jpeg,.png,.webp" class="form-input-custom" onchange="previewCreateModalImage(this)" />
+                <div id="createPreviewBox" class="preview-image-box display-none">
+                    <img id="createImagePreview" src="" alt="Xem trước" class="preview-image-thumb" />
                     <div>
-                        <span style="font-size: 12px; font-weight: 700; color: #2D3748; display: block;">Xem trước ảnh món ăn</span>
-                        <small style="font-size: 11px; color: #718096;">Ảnh sẽ được lưu tự động vào thư mục an toàn trên server.</small>
+                        <span class="preview-title">Xem trước ảnh món ăn</span>
+                        <small class="preview-hint">Ảnh sẽ được lưu tự động vào thư mục an toàn trên server.</small>
                     </div>
                 </div>
             </div>
@@ -45,12 +55,12 @@
             </div>
 
             <div class="form-group-custom">
-                <label class="form-label-custom">Nguyên liệu (cách nhau bằng dấu phẩy) <span style="color:red;">*</span></label>
+                <label class="form-label-custom">Nguyên liệu (cách nhau bằng dấu phẩy) <span class="required-star">*</span></label>
                 <input type="text" name="IngredientsList" id="createIngredients" class="form-input-custom" placeholder="Bánh mì, Bơ lạt, Tỏi băm, Mùi tây" required />
             </div>
 
             <div class="form-group-custom">
-                <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span style="color:red">*</span></label>
+                <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span class="required-star">*</span></label>
                 <textarea name="Instructions"
                           id="createInstructions"
                           class="form-input-custom"

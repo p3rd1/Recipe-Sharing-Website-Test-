@@ -1,11 +1,25 @@
-﻿@{
+@{
     ViewBag.Title = "Không có quyền truy cập";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <div class="auth-page">
-    <div class="auth-card">
-        <h2>Không có quyền truy cập</h2>
-        <p class="auth-subtitle">Tài khoản hiện tại không được phép mở chức năng này.</p>
-        <a class="btn-brand auth-submit" href="@Url.Action("Index", "Home", new { area = "" })" style="display:block;text-align:center;text-decoration:none;">Về trang chủ</a>
+    <div class="auth-card access-denied-box">
+        <div class="access-denied-icon">🚫</div>
+        <h2 class="access-denied-title">Truy cập bị từ chối (403)</h2>
+        <p class="auth-subtitle">
+            Bạn không có quyền truy cập trang Quản trị viên.
+        </p>
+        <p class="access-denied-desc">
+            Chức năng này chỉ dành cho tài khoản có vai trò <strong>Admin</strong>.
+            Nếu bạn cho rằng đây là lỗi, vui lòng liên hệ Quản trị viên hệ thống.
+        </p>
+        <div class="access-denied-actions">
+            <a class="auth-submit btn-home-link" href="@Url.Action("Index", "Home", new { area = "" })">
+                🏠 Về trang chủ
+            </a>
+            <a href="@Url.Action("Login", "Account", new { area = "" })" class="btn-secondary-action">
+                🔑 Đăng nhập tài khoản khác
+            </a>
+        </div>
     </div>
 </div>

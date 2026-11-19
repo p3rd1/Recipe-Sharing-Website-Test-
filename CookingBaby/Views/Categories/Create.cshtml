@@ -1,4 +1,4 @@
-﻿@model CookingBaby.Models.Category
+@model CookingBaby.Models.Category
 
 @{
     ViewBag.Title = "Thêm Danh Mục Mới";
@@ -8,11 +8,12 @@
 <div class="admin-card">
     <h2 class="admin-card-title">THÊM DANH MỤC MỚI</h2>
     <p class="admin-card-subtitle">Tạo nhóm công thức mới cho biệt đội Đầu Bếp Nhí</p>
-    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 24px;" />
+    <hr class="card-divider" />
 
     @using (Html.BeginForm())
     {
         @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
         <div class="form-group-custom">
             <label class="form-label-custom">Tên danh mục</label>

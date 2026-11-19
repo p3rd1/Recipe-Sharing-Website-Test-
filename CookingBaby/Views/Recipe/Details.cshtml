@@ -1,0 +1,229 @@
+@model CookingBaby.Models.Recipe
+@{
+    ViewBag.Title = Model.Title + " - Cooking Baby";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string imgUrl = string.IsNullOrWhiteSpace(Model.ImageUrl)
+        ? Url.Content("~/Content/images/pancake.jpg")
+        : (Model.ImageUrl.StartsWith("/") || Model.ImageUrl.StartsWith("~"))
+            ? Url.Content(Model.ImageUrl)
+            : (Model.ImageUrl.StartsWith("Uploads/"))
+                ? Url.Content("~/" + Model.ImageUrl)
+                : Url.Content("~/Content/images/" + Model.ImageUrl);
+
+    int currentUserId = Session["UserID"] is int ? (int)Session["UserID"] : 0;
+    string currentRole = Session["Role"] as string ?? "";
+    bool isAuthorOrAdmin = (currentUserId > 0 && currentUserId == Model.AuthorId) || currentRole == "Admin";
+    bool isSaved = ViewBag.IsSaved is bool && (bool)ViewBag.IsSaved;
+
+    var ratings = Model.Ratings != null ? Model.Ratings.ToList() : new List<CookingBaby.Models.Rating>();
+    double avgRating = ratings.Any() ? ratings.Average(r => r.Stars) : 0;
+    int reviewCount = ratings.Count();
+
+    var ingredients = Model.RecipeIngredients != null
+        ? Model.RecipeIngredients.OrderBy(i => i.SortOrder).ToList()
+        : new List<CookingBaby.Models.RecipeIngredient>();
+
+    var steps = Model.RecipeSteps != null
+        ? Model.RecipeSteps.OrderBy(s => s.StepNumber).ToList()
+        : new List<CookingBaby.Models.RecipeStep>();
+
+    var comments = Model.Comments != null
+        ? Model.Comments.OrderByDescending(c => c.CreatedAt).ToList()
+        : new List<CookingBaby.Models.Comment>();
+}
+
+<!-- Breadcrumb điều hướng -->
+<div class="breadcrumb-bar">
+    <a href="@Url.Action("Index", "Home")">Trang Chủ</a>
+    <span class="breadcrumb-separator">›</span>
+    @if (Model.Category != null)
+    {
+        <a href="@Url.Action("Index", "Home", new { categoryId = Model.CategoryId })">@Model.Category.CategoryName</a>
+        <span class="breadcrumb-separator">›</span>
+    }
+    <span class="breadcrumb-current">@Model.Title</span>
+</div>
+
+<div class="admin-card recipe-details-container">
+    <!-- Header chi tiết -->
+    <div class="detail-header-flex">
+        <div class="modal-cat-tag-wrap">
+            <span class="modal-cat-tag">@(Model.Category != null ? Model.Category.CategoryName : "Món ngon")</span>
+            @if (Model.Status == "Chờ duyệt")
+            {
+                <span class="status-pill status-pending">⏳ Chờ duyệt</span>
+            }
+            else if (Model.Status == "Đã duyệt")
+            {
+                <span class="status-pill status-approved">✔ Đã duyệt</span>
+            }
+        </div>
+
+        <div class="header-right-actions">
+            @if (isAuthorOrAdmin)
+            {
+                <a href="@Url.Action("EditRecipe", "Recipe", new { id = Model.RecipeId })" class="btn-cancel-custom btn-edit-link">
+                    ✏ Chỉnh Sửa
+                </a>
+            }
+
+            @if (currentUserId > 0)
+            {
+                <button type="button" class="btn-save-recipe modal-save-btn @(isSaved ? "active" : "")"
+                        id="pageBtnSave"
+                        data-recipe-id="@Model.RecipeId"
+                        data-url="@Url.Action("ToggleSaved", "Recipe")"
+                        onclick="toggleSaveOnPage(@Model.RecipeId, '@Url.Action("ToggleSaved", "Recipe")')">
+                    <span id="pageSaveIcon">@(isSaved ? "♥ Đã Lưu" : "♡ Lưu Món")</span>
+                </button>
+            }
+            else
+            {
+                <a href="@Url.Action("Login", "Account")" class="btn-save-recipe modal-save-btn" title="Đăng nhập để lưu món">
+                    ♡ Lưu Món
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Thông tin chính món ăn -->
+    <div class="modal-detail-grid">
+        <div class="modal-img-wrap">
+            <span class="modal-time-badge">⏱ @Model.CookTime phút</span>
+            <img src="@imgUrl" alt="@Model.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+        </div>
+
+        <div class="detail-column-stack">
+            <h1 class="modal-recipe-title">@Model.Title</h1>
+            <p class="modal-recipe-desc">@Model.Description</p>
+
+            <div class="modal-rating-author-box">
+                <div class="rating-group-inline">
+                    <span class="modal-rating-score-badge">@(avgRating > 0 ? avgRating.ToString("0.0") : "0.0")★</span>
+                    <div>
+                        <div class="modal-stars-gold">
+                            @for (int s = 1; s <= 5; s++)
+                            {
+                                <span>@(s <= Math.Round(avgRating) ? "★" : "☆")</span>
+                            }
+                        </div>
+                        <span class="modal-review-count">(@reviewCount đánh giá)</span>
+                    </div>
+                </div>
+
+                <div class="author-meta-box">
+                    <span class="modal-author-label">Người sáng tạo:</span>
+                    <strong class="modal-author-name">@(Model.User1 != null ? Model.User1.DisplayName : "Siêu đầu bếp nhí")</strong>
+                    @if (Model.CreatedAt != default(DateTime))
+                    {
+                        <div class="muted-note">@Model.CreatedAt.ToString("dd/MM/yyyy")</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Cột: Nguyên liệu và Các bước làm -->
+    <div class="modal-columns-2">
+        <!-- Cột Nguyên Liệu -->
+        <div>
+            <h3 class="detail-section-title">Nguyên Liệu Cần Chuẩn Bị</h3>
+            @if (ingredients.Any())
+            {
+                <div class="ingredients-checklist">
+                    @foreach (var ing in ingredients)
+                    {
+                        <label class="detail-checklist-item">
+                            <input type="checkbox" />
+                            <span>@ing.IngredientName</span>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="empty-text">Chưa có thông tin nguyên liệu.</p>
+            }
+        </div>
+
+        <!-- Cột Các Bước Thực Hiện -->
+        <div>
+            <h3 class="detail-section-title">Các Bước Thực Hiện</h3>
+            @if (steps.Any())
+            {
+                <div class="steps-flow">
+                    @foreach (var step in steps)
+                    {
+                        <div class="detail-step-card">
+                            <span class="step-number-pill">@step.StepNumber</span>
+                            <p class="step-text">@step.Instruction</p>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="empty-text">Chưa có hướng dẫn các bước.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Khu vực Đánh giá & Bình luận -->
+    <div class="review-section">
+        <h3 class="review-section-title">Đánh Giá & Nhận Xét Từ Cộng Đồng</h3>
+
+        @if (currentUserId > 0)
+        {
+            <div class="review-input-bar">
+                <div class="rating-select-bar">
+                    <span class="star-rating-label">Chấm điểm món này:</span>
+                    <div class="rating-stars" id="pageStarBox">
+                        <span class="rating-star active text-warning selected" data-val="1" data-value="1" title="1 sao - Cần cải thiện">★</span>
+                        <span class="rating-star active text-warning selected" data-val="2" data-value="2" title="2 sao - Tạm được">★</span>
+                        <span class="rating-star active text-warning selected" data-val="3" data-value="3" title="3 sao - Khá ổn">★</span>
+                        <span class="rating-star active text-warning selected" data-val="4" data-value="4" title="4 sao - Rất ngon">★</span>
+                        <span class="rating-star active text-warning selected" data-val="5" data-value="5" title="5 sao - Tuyệt vời">★</span>
+                    </div>
+                    <input type="hidden" id="pageSelectedRating" name="Rating" value="5" />
+                    <span id="pageStarValueText" class="star-rating-label">5 Sao (Tuyệt vời)</span>
+                </div>
+
+                <div class="search-wrap">
+                    <input type="text" id="pageCommentInput" class="search-input" placeholder="Chia sẻ cảm nghĩ (không bắt buộc)..." maxlength="1000" />
+                    <button type="button" class="btn-search" id="btnPageSubmitReview"
+                            data-recipe-id="@Model.RecipeId"
+                            data-rate-url="@Url.Action("RateRecipe", "Recipe")"
+                            data-comment-url="@Url.Action("AddComment", "Recipe")">Gửi Nhận Xét</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="muted-note">
+                Vui lòng <a href="@Url.Action("Login", "Account")" class="card-author-link">Đăng nhập</a> để chấm điểm sao và để lại bình luận cho món ăn này.
+            </p>
+        }
+
+        <!-- Danh sách nhận xét -->
+        <div class="comments-list-box" id="pageCommentsList">
+            @if (comments.Any())
+            {
+                foreach (var c in comments)
+                {
+                    <div class="comment-item-card">
+                        <div class="comment-author-row">
+                            <strong>@(c.User != null ? c.User.DisplayName : "Thành viên")</strong>
+                            <span class="muted-note">@(c.CreatedAt != default(DateTime) ? c.CreatedAt.ToString("dd/MM/yyyy HH:mm") : "")</span>                        </div>
+                        <p class="comment-content-text">@c.Content</p>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="empty-text" id="emptyCommentsMsg">Chưa có bình luận nào. Hãy là người đầu tiên thưởng thức và để lại nhận xét!</p>
+            }
+        </div>
+    </div>
+</div>
+

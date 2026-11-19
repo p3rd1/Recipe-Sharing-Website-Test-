@@ -4,21 +4,17 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="admin-toolbar" style="margin-top: 24px;">
+<div class="admin-toolbar">
     @if (TempData["SuccessMessage"] != null)
     {
-        <div style="background:#d4edda; color:#155724;
-                padding:15px; margin-bottom:20px;
-                border-radius:8px;">
+        <div class="admin-alert admin-alert-success">
             ✔ @TempData["SuccessMessage"]
         </div>
     }
 
     @if (TempData["ErrorMessage"] != null)
     {
-        <div style="background:#f8d7da; color:#721c24;
-                padding:15px; margin-bottom:20px;
-                border-radius:8px;">
+        <div class="admin-alert admin-alert-error">
             ⚠ @TempData["ErrorMessage"]
         </div>
     }
@@ -27,7 +23,7 @@
         <p class="admin-subtitle">Quản lý danh sách các công thức do bạn đóng góp cho cộng đồng Cooking Baby</p>
     </div>
     <!-- Nút mở Modal trực tiếp, đồng bộ với Header -->
-    <a href="javascript:void(0)" onclick="openCreateModal()" class="btn-add-category" style="cursor: pointer; text-decoration: none;">
+    <a href="javascript:void(0)" onclick="openCreateModal()" class="btn-add-category">
         + Đăng Công Thức Mới
     </a>
 </div>
@@ -42,7 +38,7 @@
 <div class="recipe-grid">
     @foreach (var item in Model)
     {
-        <article class="recipe-card" style="cursor: pointer;" onclick="openDetailModal(@item.RecipeId)">
+        <article class="recipe-card" onclick="openDetailModal(@item.RecipeId)">
             <!-- Nhãn trạng thái Đã duyệt / Chờ duyệt -->
             @if (item.Status == "Đã duyệt")
             {
@@ -53,40 +49,58 @@
                 <span class="status-pill status-pending">⏳ Chờ duyệt</span>
             }
 
+            @{
+                string myImgUrl = string.IsNullOrWhiteSpace(item.ImageUrl)
+                    ? Url.Content("~/Content/images/pancake.jpg")
+                    : (item.ImageUrl.StartsWith("/") || item.ImageUrl.StartsWith("~"))
+                        ? Url.Content(item.ImageUrl)
+                        : (item.ImageUrl.StartsWith("Uploads/"))
+                            ? Url.Content("~/" + item.ImageUrl)
+                            : Url.Content("~/Content/images/" + item.ImageUrl);
+            }
             <div class="card-img-wrap">
                 <span class="time-badge">⏱ @item.CookTime phút</span>
-                <img src="~/Content/images/@item.ImageUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+                <img src="@myImgUrl" alt="@item.Title" onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
             </div>
 
             <div class="card-content">
                 <div class="card-meta">
                     <span class="cat-label">@(string.IsNullOrEmpty(item.CategoryName) ? "Món ngon" : item.CategoryName)</span>
-                    <span style="color:#D69E2E; font-size:12px; font-weight:700;">★ Mới (0)</span>
+                    @if (item.RatingCount > 0 && item.AvgRating.HasValue)
+                    {
+                        <span class="card-rating-badge">★ @item.AvgRating.Value.ToString("0.0") (@item.RatingCount)</span>
+                    }
+                    else
+                    {
+                        <span class="card-rating-new">☆ Mới (0)</span>
+                    }
                 </div>
 
                 <h4 class="recipe-title">@item.Title</h4>
                 <p class="recipe-desc">@item.Description</p>
 
-                <!-- Danh sách tag nguyên liệu (Đã đồng bộ class .saved-tags-wrap và .saved-tag-pill giống trang chủ) -->
-                <div class="saved-tags-wrap">
+                <!-- Danh sách tag nguyên liệu đầy đủ (Đồng bộ class .recipe-tags-wrap và .recipe-tag-pill với Trang Chủ) -->
+                <div class="recipe-tags-wrap">
                     @if (!string.IsNullOrWhiteSpace(item.Ingredients))
                     {
-                        var ingArray = item.Ingredients.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        var ingArray = item.Ingredients.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim())
+                            .Where(x => !string.IsNullOrWhiteSpace(x));
                         foreach (var ing in ingArray)
                         {
-                            <span class="saved-tag-pill">@ing.Trim()</span>
+                            <span class="recipe-tag-pill">@ing</span>
                         }
                     }
                     else
                     {
-                        <span class="saved-tag-pill">Gia vị chuẩn</span>
+                        <span class="recipe-tag-pill">Gia vị chuẩn</span>
                     }
                 </div>
 
                 <!-- Footer thẻ: Tác giả & 2 nút Sửa, Xóa đúng ảnh mẫu -->
                 <div class="my-card-footer">
-                    <span style="font-size: 12px; color: #718096;">
-                        Đầu bếp: <strong style="color: #2D3748;">@(string.IsNullOrEmpty(item.AuthorName) ? "Siêu đầu bếp nhí" : item.AuthorName)</strong>
+                    <span class="author-note">
+                        Đầu bếp: <strong>@(string.IsNullOrEmpty(item.AuthorName) ? "Siêu đầu bếp nhí" : item.AuthorName)</strong>
                     </span>
 
                     <div class="my-card-actions">
@@ -96,7 +110,7 @@
                            onclick="event.stopPropagation();">Sửa</a>
 
                         <!-- Nút Xóa (Có hộp thoại xác nhận) -->
-                        @using (Html.BeginForm("DeleteMyRecipe", "Recipe", new { id = item.RecipeId, area = "" }, FormMethod.Post, new { style = "display:inline", onclick = "event.stopPropagation();" }))
+                        @using (Html.BeginForm("DeleteMyRecipe", "Recipe", new { id = item.RecipeId, area = "" }, FormMethod.Post, new { @class = "admin-inline-form", onclick = "event.stopPropagation();" }))
                         {
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn-pill-action btn-pill-del" onclick="event.stopPropagation(); return confirm('Bạn chắc chắn muốn xóa công thức này?');">Xóa</button>

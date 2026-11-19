@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.IO;
@@ -286,7 +287,7 @@ namespace CookingBaby.Controllers
                     r.UserId,
                     r.UserName,
                     r.Stars,
-                    r.Content,
+                    Content = r.CommentId == 0 ? null : r.Content,
                     CreatedAt = r.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                 }).ToList();
 
@@ -303,6 +304,7 @@ namespace CookingBaby.Controllers
                         .ToList();
 
                     var ratings = db.Ratings
+                        .Include(r => r.User)
                         .Where(r => r.RecipeId == recipeId)
                         .ToList();
 
@@ -320,6 +322,20 @@ namespace CookingBaby.Controllers
                             CreatedAt = c.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                         };
                     }).ToList();
+
+                    foreach (var rating in ratings.Where(r => !comments.Any(c => c.UserId == r.UserId)))
+                    {
+                        result.Add(new
+                        {
+                            CommentId = 0,
+                            RecipeId = rating.RecipeId,
+                            UserId = rating.UserId,
+                            UserName = rating.User != null ? rating.User.DisplayName : "Thành viên",
+                            Stars = (int)rating.Stars,
+                            Content = (string)null,
+                            CreatedAt = rating.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        });
+                    }
 
                     return Json(result, JsonRequestBehavior.AllowGet);
                 }
@@ -366,16 +382,7 @@ namespace CookingBaby.Controllers
                     });
                 }
 
-                if (string.IsNullOrWhiteSpace(content))
-                {
-                    return Json(new
-                    {
-                        success = false,
-                        message = "Vui lòng nhập nội dung bình luận."
-                    });
-                }
-
-                content = content.Trim();
+                content = (content ?? string.Empty).Trim();
                 if (content.Length > 1000)
                 {
                     return Json(new
@@ -396,7 +403,10 @@ namespace CookingBaby.Controllers
                         new SqlParameter("@RecipeId", recipeId),
                         new SqlParameter("@UserId", userId),
                         new SqlParameter("@Stars", stars),
-                        new SqlParameter("@Content", content)
+                        new SqlParameter("@Content", SqlDbType.NVarChar, 1000)
+                        {
+                            Value = string.IsNullOrEmpty(content) ? (object)DBNull.Value : content
+                        }
                     );
                 }
                 catch
@@ -419,13 +429,16 @@ namespace CookingBaby.Controllers
                         });
                     }
 
-                    db.Comments.Add(new Comment
+                    if (!string.IsNullOrWhiteSpace(content))
                     {
-                        RecipeId = recipeId,
-                        UserId = userId,
-                        Content = content,
-                        CreatedAt = DateTime.Now
-                    });
+                        db.Comments.Add(new Comment
+                        {
+                            RecipeId = recipeId,
+                            UserId = userId,
+                            Content = content,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
 
                     db.SaveChanges();
                 }
@@ -438,10 +451,11 @@ namespace CookingBaby.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("Lỗi gửi đánh giá/bình luận: " + ex.Message);
                 return Json(new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Chưa thể gửi đánh giá lúc này. Vui lòng thử lại."
                 });
             }
         }
@@ -531,10 +545,11 @@ namespace CookingBaby.Controllers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("Lỗi lưu công thức yêu thích: " + ex.Message);
                 return Json(new
                 {
                     success = false,
-                    message = "Lỗi hệ thống khi lưu công thức: " + ex.Message
+                    message = "Chưa thể cập nhật sổ tay món ăn. Vui lòng thử lại."
                 }, JsonRequestBehavior.AllowGet);
             }
         }

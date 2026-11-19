@@ -1,14 +1,27 @@
-﻿@model IEnumerable<CookingBaby.Models.Category>
+@model IEnumerable<CookingBaby.Models.Category>
 
 @{
-    ViewBag.Title = "Quản Lý Danh Mục";
+    ViewBag.Title = "Quản Lý Danh Mục - Cooking Baby";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="admin-toolbar">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div role="alert" class="admin-alert admin-alert-success">
+            ✔ @TempData["SuccessMessage"]
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div role="alert" class="admin-alert admin-alert-error">
+            ⚠ @TempData["ErrorMessage"]
+        </div>
+    }
+
     <div>
         <h2 class="admin-title">QUẢN LÝ DANH MỤC ĐẦU BẾP NHÍ</h2>
-        <p class="admin-subtitle">Danh sách 4 nhóm công thức hiển thị trên thanh tab trang chủ</p>
+        <p class="admin-subtitle">Danh sách nhóm công thức hiển thị trên thanh tab trang chủ</p>
     </div>
     @Html.ActionLink("+ Thêm Danh Mục Mới", "Create", null, new { @class = "btn-add-category" })
 </div>
@@ -20,7 +33,7 @@
                 <th>Thứ Tự</th>
                 <th>Tên Danh Mục</th>
                 <th>Màu Nhận Diện</th>
-                <th style="text-align: right;">Thao Tác</th>
+                <th class="text-right">Thao Tác</th>
             </tr>
         </thead>
         <tbody>

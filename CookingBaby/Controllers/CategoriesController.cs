@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Web;
@@ -52,14 +54,33 @@ namespace CookingBaby.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "CategoryId,CategoryName,ThemeColor,DisplayOrder")] Category category)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+            {
+                return View(category);
+            }
+
+            category.CategoryName = (category.CategoryName ?? string.Empty).Trim();
+            ModelState.Remove(nameof(category.CategoryName));
+
+            if (CategoryNameExists(category.CategoryName))
+            {
+                ModelState.AddModelError(nameof(category.CategoryName), "Tên danh mục đã tồn tại. Vui lòng chọn tên khác.");
+                return View(category);
+            }
+
+            try
             {
                 db.Categories.Add(category);
                 db.SaveChanges();
+                TempData["SuccessMessage"] = "Thêm danh mục thành công.";
                 return RedirectToAction("Index");
             }
+            catch (DbUpdateException ex)
+            {
+                AddCategorySaveError(ex);
+                return View(category);
+            }
 
-            return View(category);
         }
 
         // GET: Categories/Edit/5
@@ -84,13 +105,53 @@ namespace CookingBaby.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "CategoryId,CategoryName,ThemeColor,DisplayOrder")] Category category)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+            {
+                return View(category);
+            }
+
+            category.CategoryName = (category.CategoryName ?? string.Empty).Trim();
+            ModelState.Remove(nameof(category.CategoryName));
+
+            if (CategoryNameExists(category.CategoryName, category.CategoryId))
+            {
+                ModelState.AddModelError(nameof(category.CategoryName), "Tên danh mục đã tồn tại. Vui lòng chọn tên khác.");
+                return View(category);
+            }
+
+            try
             {
                 db.Entry(category).State = EntityState.Modified;
                 db.SaveChanges();
+                TempData["SuccessMessage"] = "Cập nhật danh mục thành công.";
                 return RedirectToAction("Index");
             }
-            return View(category);
+            catch (DbUpdateException ex)
+            {
+                AddCategorySaveError(ex);
+                return View(category);
+            }
+        }
+
+        private bool CategoryNameExists(string categoryName, int? excludedCategoryId = null)
+        {
+            return db.Categories.Any(c => c.CategoryName == categoryName &&
+                (!excludedCategoryId.HasValue || c.CategoryId != excludedCategoryId.Value));
+        }
+
+        private void AddCategorySaveError(DbUpdateException exception)
+        {
+            var sqlException = exception.GetBaseException() as SqlException;
+            bool isDuplicateKey = sqlException != null &&
+                sqlException.Errors.Cast<SqlError>().Any(error => error.Number == 2601 || error.Number == 2627);
+
+            if (isDuplicateKey)
+            {
+                ModelState.AddModelError(nameof(Category.CategoryName), "Tên danh mục đã tồn tại. Vui lòng chọn tên khác.");
+                return;
+            }
+
+            ModelState.AddModelError(string.Empty, "Không thể lưu danh mục lúc này. Vui lòng kiểm tra thông tin và thử lại.");
         }
 
         // GET: Categories/Delete/5
@@ -126,9 +187,16 @@ namespace CookingBaby.Controllers
                     "Không thể xóa danh mục này vì đang có công thức thuộc danh mục.";
                 return RedirectToAction("Index");
             }
-            db.Categories.Remove(category);
-            db.SaveChanges();
-            TempData["SuccessMessage"] = "Xóa danh mục thành công.";
+            try
+            {
+                db.Categories.Remove(category);
+                db.SaveChanges();
+                TempData["SuccessMessage"] = "Xóa danh mục thành công.";
+            }
+            catch (DbUpdateException)
+            {
+                TempData["ErrorMessage"] = "Không thể xóa danh mục vì dữ liệu đang được sử dụng. Hãy làm mới trang và thử lại.";
+            }
             return RedirectToAction("Index");
         }
         protected override void Dispose(bool disposing)

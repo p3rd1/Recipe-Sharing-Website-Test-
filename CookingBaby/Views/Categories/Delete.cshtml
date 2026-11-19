@@ -1,4 +1,4 @@
-﻿@model CookingBaby.Models.Category
+@model CookingBaby.Models.Category
 
 @{
     ViewBag.Title = "Xác Nhận Xóa Danh Mục";
@@ -6,9 +6,9 @@
 }
 
 <div class="admin-card">
-    <h2 class="admin-card-title" style="color: #E53E3E;">XÁC NHẬN XÓA DANH MỤC</h2>
+    <h2 class="admin-card-title title-danger">XÁC NHẬN XÓA DANH MỤC</h2>
     <p class="admin-card-subtitle">Hành động này sẽ gỡ bỏ danh mục khỏi thanh tab trang chủ</p>
-    <hr style="border: 0; border-top: 1px solid var(--line); margin-bottom: 20px;" />
+    <hr class="card-divider" />
 
     <div class="alert-delete-box">
         ⚠ Bạn có chắc chắn muốn xóa danh mục này không? Các món ăn liên kết có thể bị ảnh hưởng.
@@ -17,7 +17,7 @@
     <div class="detail-list">
         <div class="detail-row">
             <span class="detail-label">Tên danh mục:</span>
-            <span class="detail-value" style="font-size: 16px;">@Model.CategoryName</span>
+            <span class="detail-value detail-value-lg">@Model.CategoryName</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Màu nhận diện:</span>

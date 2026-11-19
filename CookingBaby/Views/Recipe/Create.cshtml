@@ -1,0 +1,94 @@
+@model CookingBaby.Models.Recipe
+@{
+    ViewBag.Title = "Đăng Công Thức Mới - Cooking Baby";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="breadcrumb-bar">
+    <a href="@Url.Action("Index", "Home")">Trang Chủ</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="@Url.Action("MyRecipes", "Recipe")">Góc Bếp Của Tôi</a>
+    <span class="breadcrumb-separator">›</span>
+    <span class="breadcrumb-current">Đăng Công Thức Mới</span>
+</div>
+
+<div class="admin-card edit-recipe-card">
+    <a href="@Url.Action("MyRecipes", "Recipe")" class="modal-close-btn" title="Quay lại">✕</a>
+
+    <div class="edit-recipe-header">
+        <h2 class="admin-card-title">Đăng Công Thức Mới</h2>
+        <p class="admin-card-subtitle">Chia sẻ những món ăn ngon, dễ làm và giàu dinh dưỡng cùng cộng đồng Cooking Baby</p>
+    </div>
+
+    @using (Html.BeginForm("Create", "Recipe", FormMethod.Post, new { enctype = "multipart/form-data", id = "createRecipePageForm", onsubmit = "return validateCreatePageForm();" }))
+    {
+        @Html.AntiForgeryToken()
+
+        @Html.ValidationSummary(true, "", new { @class = "admin-alert admin-alert-error" })
+
+        if (TempData["ErrorMessage"] != null)
+        {
+            <div class="admin-alert admin-alert-error">@TempData["ErrorMessage"]</div>
+        }
+        if (TempData["SuccessMessage"] != null)
+        {
+            <div class="admin-alert admin-alert-success">@TempData["SuccessMessage"]</div>
+        }
+
+        <div id="createClientError" class="admin-alert admin-alert-error client-error-box" style="display:none;"></div>
+
+        <div class="form-grid-2-1">
+            <div class="form-group-custom">
+                <label class="form-label-custom">Tên món ăn <span class="required-star">*</span></label>
+                <input type="text" name="Title" id="pageTitle" value="@Model?.Title" class="form-input-custom" maxlength="200" placeholder="VD: Bánh Pancake Chuối Bơ Sữa..." required />
+            </div>
+            <div class="form-group-custom">
+                <label class="form-label-custom">Thời gian nấu (phút) <span class="required-star">*</span></label>
+                <input type="number" name="CookTime" id="pageCookTime" value="@(Model != null && Model.CookTime > 0 ? Model.CookTime : 15)" class="form-input-custom" min="1" max="1440" required />
+            </div>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-group-custom">
+                <label class="form-label-custom">Danh mục ẩm thực <span class="required-star">*</span></label>
+                @Html.DropDownList("CategoryId", null, htmlAttributes: new { @class = "form-input-custom", required = "required" })
+            </div>
+            <div class="form-group-custom">
+                <label class="form-label-custom">Hình ảnh đại diện (.jpg, .png, .webp)</label>
+                <input type="file" name="ImageFile" id="pageImageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" onchange="previewSelectedImage(this, 'pageImagePreview')" />
+            </div>
+        </div>
+
+        <!-- Khung Preview Ảnh Trực Quan -->
+        <div class="preview-image-box">
+            <img id="pageImagePreview" src="~/Content/images/pancake.jpg" alt="Preview ảnh"
+                 class="preview-image-thumb"
+                 onerror="this.src='https://placehold.co/400x300?text=Mon+An'" />
+            <div>
+                <strong class="preview-title">Ảnh minh họa món ăn</strong>
+                <small class="preview-hint">Nếu không chọn ảnh, hệ thống sẽ sử dụng ảnh mặc định. Ảnh tải lên sẽ được lưu an toàn tại <code>/Uploads/Recipes/</code>.</small>
+            </div>
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Mô tả ngắn món ăn <span class="required-star">*</span></label>
+            <textarea name="Description" id="pageDescription" class="form-input-custom" rows="2" maxlength="500" placeholder="Mô tả hương vị, độ mềm xốp hoặc lợi ích sức khỏe của món ăn..." required>@Model?.Description</textarea>
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Nguyên liệu (Cách nhau bằng dấu phẩy) <span class="required-star">*</span></label>
+            <input type="text" name="IngredientsList" id="pageIngredients" value="@ViewBag.IngredientsString" class="form-input-custom" placeholder="VD: Bột mì, Trứng gà, Sữa tươi tiệt trùng, Chuối chín, Bơ lạt" required />
+        </div>
+
+        <div class="form-group-custom">
+            <label class="form-label-custom">Các bước thực hiện (Mỗi bước 1 dòng) <span class="required-star">*</span></label>
+            <textarea name="Instructions" id="pageInstructions" class="form-input-custom" rows="5" placeholder="Nghiền nhuyễn chuối chín và trộn đều với trứng gà, sữa tươi.&#10;Rây bột mì vào hỗn hợp trên rồi quấy đều tay cho mịn.&#10;Làm nóng chảo chống dính với chút bơ lạt, múc bột vào rán vàng hai mặt.&#10;Trình bày ra đĩa và thưởng thức khi còn ấm." required>@ViewBag.InstructionsString</textarea>
+        </div>
+
+        <div class="form-actions-custom">
+            <button type="submit" class="btn-submit-custom">Đăng Công Thức</button>
+            <a href="@Url.Action("MyRecipes", "Recipe")" class="btn-cancel-custom">Hủy bỏ</a>
+        </div>
+    }
+</div>
+

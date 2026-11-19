@@ -66,12 +66,12 @@ namespace CookingBaby.Controllers
             }
             catch (DbUpdateException)
             {
-                ModelState.AddModelError("", "Không thể tạo tài khoản. Tên đăng nhập hoặc email có thể đã tồn tại.");
+                ModelState.AddModelError("", "Không thể tạo tài khoản. Tên đăng nhập hoặc email có thể vừa được người khác sử dụng; vui lòng kiểm tra lại.");
                 return View(model);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ModelState.AddModelError("", "Đã có lỗi xảy ra trong quá trình đăng ký: " + ex.Message);
+                ModelState.AddModelError("", "Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.");
                 return View(model);
             }
 
@@ -133,7 +133,15 @@ namespace CookingBaby.Controllers
                 {
                     user.LockoutEnd = DateTime.Now.AddMinutes(15);
                 }
-                db.SaveChanges();
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (Exception)
+                {
+                    ModelState.AddModelError("", "Không thể cập nhật trạng thái đăng nhập lúc này. Vui lòng thử lại sau.");
+                    return View(model);
+                }
 
                 ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không chính xác.");
                 return View(model);
@@ -143,7 +151,15 @@ namespace CookingBaby.Controllers
             user.LastLoginAt = DateTime.Now;
             user.FailedLoginCount = 0;
             user.LockoutEnd = null;
-            db.SaveChanges();
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError("", "Không thể đăng nhập lúc này do lỗi lưu dữ liệu. Vui lòng thử lại sau.");
+                return View(model);
+            }
 
             // Lưu đầy đủ Session chuẩn cho toàn hệ thống
             Session.Clear();

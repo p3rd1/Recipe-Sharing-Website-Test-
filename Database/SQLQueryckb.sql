@@ -180,11 +180,7 @@ SELECT
     rt.UserId,
     u.DisplayName AS UserName,
     rt.Stars,
-    CASE
-        WHEN cm.CommentId IS NULL
-        THEN N'Chỉ đánh giá sao, chưa để lại bình luận.'
-        ELSE cm.Content
-    END AS Content,
+    cm.Content,
     ISNULL(cm.CreatedAt, rt.CreatedAt) AS CreatedAt
 FROM dbo.Ratings rt
 JOIN dbo.Users u ON u.UserId = rt.UserId

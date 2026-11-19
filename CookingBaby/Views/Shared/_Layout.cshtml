@@ -1,7 +1,10 @@
 @{
-    bool isAdminPage = (ViewBag.IsAdminPage as bool?) == true;
-    bool isLoggedIn = Request.IsAuthenticated && Session["UserID"] is int;
-    bool isAdmin = isLoggedIn && (Session["Role"] as string) == "Admin";
+    int currentUid = Session["UserID"] is int id ? id : 0;
+    bool isLoggedIn = currentUid > 0;
+    string userRole = (Session["Role"] as string) ?? "";
+    bool isAdmin = isLoggedIn && userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+    bool isRegularUser = isLoggedIn && !isAdmin;
+    bool isAdminPage = (ViewBag.IsAdminPage as bool?) == true || isAdmin;
     string roleLabel = !isLoggedIn ? "Khách" : (isAdmin ? "Quản trị viên (Admin)" : "Thành viên đăng bài");
     int myRecipeCount = 0;
     int savedCount = 0;
@@ -13,10 +16,12 @@
         {
             using (var dbContext = new CookingBaby.Models.CookingBabyDBEntities())
             {
-                int currentUserId = (int)Session["UserID"];
-                myRecipeCount = dbContext.Recipes.Count(r => r.AuthorId == currentUserId && r.Status != "Đã ẩn");
-                savedCount = dbContext.SavedRecipes.Count(r => r.UserId == currentUserId);
-                if (isAdmin)
+                if (isRegularUser)
+                {
+                    myRecipeCount = dbContext.Recipes.Count(r => r.AuthorId == currentUid && r.Status != "Đã ẩn");
+                    savedCount = dbContext.SavedRecipes.Count(r => r.UserId == currentUid);
+                }
+                else if (isAdmin)
                 {
                     pendingAdminCount = dbContext.Recipes.Count(r => r.Status == "Chờ duyệt");
                 }
@@ -34,32 +39,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewBag.Title - Cooking Baby</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link href="~/Content/cookingbaby.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            var tabs = document.querySelectorAll(".nav-tab-item");
-            var currentPath = window.location.pathname.toLowerCase();
-
-            tabs.forEach(function (tab) {
-                tab.classList.remove("active");
-            });
-
-            tabs.forEach(function (tab) {
-                var tabPath = new URL(tab.href).pathname.toLowerCase();
-
-                if (
-                    (currentPath === "/" || currentPath === "/home" || currentPath === "/home/index")
-                    &&
-                    (tabPath === "/" || tabPath === "/home" || tabPath === "/home/index")
-                ) {
-                    tab.classList.add("active");
-                }
-                else if (currentPath === tabPath) {
-                    tab.classList.add("active");
-                }
-            });
-        });
-    </script>
 </head>
 <body>
     <!-- Hiển thị vai trò thực tế của phiên, không phải các liên kết demo giả lập -->
@@ -82,17 +63,17 @@
                 </div>
             </a>
 
-            <!-- Cụm Tab Menu -->
+            <!-- Cụm Tab Menu: TÁCH BIỆT RÕ RÀNG GIỮA ADMIN VÀ USER -->
             <nav class="nav-tab-group">
-                <!-- 1. Khám phá công thức -->
+                <!-- 1. Khám phá công thức: Tất cả mọi người đều có thể duyệt xem -->
                 <a href="@Url.Action("Index", "Home", new { area = "" })"
-                   class="nav-tab-item @(ViewBag.ActiveTab != "MyRecipes" && ViewBag.ActiveTab != "SavedRecipes" && ViewBag.ActiveTab != "Admin" ? "active" : "")">
+                   class="nav-tab-item @(ViewBag.ActiveTab != "MyRecipes" && ViewBag.ActiveTab != "SavedRecipes" && ViewBag.ActiveTab != "Admin" && ViewBag.ActiveTab != "Categories" && ViewBag.ActiveTab != "Users" ? "active" : "")">
                     Khám Phá Công Thức
                 </a>
 
-                @if (isLoggedIn)
+                @if (isRegularUser)
                 {
-                    <!-- Thành viên / Admin: các chức năng cá nhân -->
+                    <!-- MENU DÀNH RIÊNG CHO THÀNH VIÊN THƯỜNG -->
                     <a href="@Url.Action("MyRecipes", "Recipe", new { area = "" })"
                        class="nav-tab-item @(ViewBag.ActiveTab == "MyRecipes" ? "active" : "")">
                         Quản Lý Cá Nhân <span class="nav-badge">@myRecipeCount</span>
@@ -102,27 +83,36 @@
                         Đã Lưu <span class="nav-badge">@savedCount</span>
                     </a>
                 }
-                @if (isAdmin)
+                else if (isAdmin)
                 {
-                    @Html.ActionLink("Quản Lý Danh Mục", "Index", "Categories", new { area = "" }, new { @class = "nav-tab-item" })
+                    <!-- MENU DÀNH RIÊNG CHO QUẢN TRỊ VIÊN (ADMIN) -->
+                    <a href="@Url.Action("Index", "Categories", new { area = "" })"
+                       class="nav-tab-item @(ViewBag.ActiveTab == "Categories" ? "active" : "")">
+                        Quản Lý Danh Mục
+                    </a>
+                    <a href="@Url.Action("Index", "Users", new { area = "Admin" })"
+                       class="nav-tab-item @(ViewBag.ActiveTab == "Users" ? "active" : "")">
+                        Quản Lý Tài Khoản
+                    </a>
                     <a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })"
                        class="nav-tab-item @(ViewBag.ActiveTab == "Admin" ? "active" : "")">
                         Duyệt Bài (Admin) <span class="nav-badge">@pendingAdminCount</span>
                     </a>
                 }
-
             </nav>
 
             <!-- Nút bên phải Header (Đã tích hợp Đăng nhập / Đăng xuất) -->
-            <div style="display: flex; align-items: center; gap: 12px;">
-                @if (isLoggedIn && !isAdminPage)
+            <div class="header-right-actions">
+                @if (isRegularUser)
                 {
+                    <!-- Chỉ Thành viên thường mới có nút + Đăng Công Thức -->
                     <a href="javascript:void(0)" onclick="openCreateModal()" class="btn-create-recipe">
                         + Đăng Công Thức
                     </a>
                 }
-                else if (isAdminPage)
+                else if (isAdmin)
                 {
+                    <!-- Admin hiển thị huy hiệu quản trị, không có nút Đăng Công Thức -->
                     <span class="admin-header-badge">ADMIN CONTROL PANEL</span>
                 }
 
@@ -141,16 +131,18 @@
                     }
                     else
                     {
-                        <div class="user-profile-badge">
-                            <div class="user-avatar-circle">
-                                👨‍🍳
-                            </div>
-                            <div class="user-info-text">
-                                <span class="user-hello-label">Xin chào,</span>
-                                <strong class="user-name-title">@Session["FullName"]</strong>
+                        <div class="user-profile-badge-wrap">
+                            <div class="user-profile-badge" title="Tài khoản đang đăng nhập">
+                                <div class="user-avatar-circle">
+                                    👨‍🍳
+                                </div>
+                                <div class="user-info-text">
+                                    <span class="user-hello-label">Xin chào,</span>
+                                    <strong class="user-name-title">@(Session["DisplayName"] ?? Session["FullName"])</strong>
+                                </div>
                             </div>
 
-                            @using (Html.BeginForm("Logout", "Account", new { area = "" }, FormMethod.Post, new { id = "logoutForm", style = "margin: 0;" }))
+                            @using (Html.BeginForm("Logout", "Account", new { area = "" }, FormMethod.Post, new { id = "logoutForm", @class = "user-logout-form" }))
                             {
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn-user-logout" title="Đăng xuất khỏi hệ thống">
@@ -187,43 +179,16 @@
     @if (isLoggedIn)
     {
         @Html.Partial("_CreateRecipeModal")
-        <div id="ajaxAntiForgery" style="display:none">@Html.AntiForgeryToken()</div>
+        <div id="ajaxAntiForgery" class="display-none">@Html.AntiForgeryToken()</div>
     }
 
-    <!-- Nhúng file Script điều khiển -->
+    <!-- Nhúng file Script điều khiển ở cuối thẻ body -->
     <script src="~/Scripts/jquery-3.4.1.min.js"></script>
-    <script src="~/Scripts/cookingbaby.js"></script>
-
-    <!-- SCRIPT ĐIỀU KHIỂN MODAL (ĐÃ SỬA LỖI CHỒNG CHÉO) -->
-    <script>
-        // openCreateModal & closeCreateModal đã khai báo trong cookingbaby.js
-        // Ở đây chỉ bổ sung: đóng bằng ESC, click overlay, nút Hủy
-
-        document.addEventListener('click', function (e) {
-            // Đóng modal Tạo công thức khi click đúng vào overlay
-            var createModal = document.getElementById('createRecipeModal');
-            if (createModal && e.target === createModal) {
-                closeCreateModal();
-            }
-            // Đóng modal Chi tiết khi click đúng vào overlay
-            var detailModal = document.getElementById('recipeDetailModal');
-            if (detailModal && e.target === detailModal) {
-                closeDetailModal();
-            }
-            // Nút Hủy bỏ trong form tạo công thức
-            if (e.target && e.target.classList.contains('btn-cancel-custom')) {
-                closeCreateModal();
-            }
-        });
-
-        // Nhấn ESC đóng cả 2 modal
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                closeCreateModal();
-                if (typeof closeDetailModal === 'function') closeDetailModal();
-            }
-        });
-    </script>
+    @if (ViewBag.IsAdminPage == true || ViewBag.ActiveTab == "Admin")
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    }
+    <script src="~/Scripts/cookingbaby.js?v=@DateTime.Now.Ticks"></script>
 
     @RenderSection("scripts", required: false)
 </body>

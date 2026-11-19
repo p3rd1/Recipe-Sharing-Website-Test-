@@ -95,9 +95,7 @@
 
     <div class="sort-box-wrap">
         <label for="sortSelect" class="sort-select-label">Sắp xếp:</label>
-        <select id="sortSelect"
-                class="sort-select-input"
-                onchange="document.getElementById('hiddenSortBy').value = this.value; document.getElementById('filterForm').submit();">
+        <select id="sortSelect" class="sort-select-input">
             <option value="newest" @(Model.SortBy == "newest" || string.IsNullOrEmpty(Model.SortBy) ? "selected" : "")>Mới nhất</option>
             <option value="rating" @(Model.SortBy == "rating" ? "selected" : "")>Đánh giá cao nhất (★)</option>
             <option value="time_asc" @(Model.SortBy == "time_asc" ? "selected" : "")>Thời gian nấu nhanh nhất (⏱)</option>
