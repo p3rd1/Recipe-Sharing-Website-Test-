@@ -4,7 +4,6 @@
 
     CANH BAO: Script xoa va tao lai cac bang du lieu cua CookingBabyDB.
     Chi chay tren database test/empty hoac sau khi da sao luu du lieu can giu.
-    Tai khoan demo: admin / 123456.
 */
 USE master;
 GO
