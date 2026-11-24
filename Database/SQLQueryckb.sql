@@ -1148,8 +1148,25 @@ SET CreatedAt = CASE
 END;
 GO
 
+
 -- Kiểm tra lại kết quả phân bổ theo tháng
 SELECT RecipeId, Title, CreatedAt, Status
 FROM dbo.Recipes
 ORDER BY CreatedAt DESC;
 GO
+
+USE master;
+GO
+
+UPDATE dbo.Users
+SET PasswordHash = N'PBKDF2-SHA256$150000$nLmWKO6jYE7dzz0E/JStOg==$tSc6mulpXXjd+fazd+JTjIqsJ/24H0uWabHmKxqGK+U=',
+    FailedLoginCount = 0,
+    LockoutEnd = NULL,
+    PasswordChangedAt = SYSDATETIME()
+WHERE Username = N'admin';
+
+IF @@ROWCOUNT <> 1
+    THROW 50001, N'Khong tim thay tai khoan admin.', 1;
+GO
+
+
