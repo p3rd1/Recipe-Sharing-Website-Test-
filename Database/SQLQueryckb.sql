@@ -34,10 +34,14 @@ CREATE TABLE dbo.Users (
     Role          NVARCHAR(20)  NOT NULL CONSTRAINT DF_Users_Role DEFAULT N'User',
     IsActive      BIT           NOT NULL CONSTRAINT DF_Users_IsActive DEFAULT 1,
     CreatedAt     DATETIME2(0)  NOT NULL CONSTRAINT DF_Users_CreatedAt DEFAULT SYSDATETIME(),
+    -- AccountController khóa 15 phút khi nhập sai mật khẩu đủ 5 lần.
+    FailedLoginCount INT        NOT NULL CONSTRAINT DF_Users_FailedLoginCount DEFAULT (0),
+    LockoutEnd    DATETIME2(0)  NULL,
     CONSTRAINT PK_Users          PRIMARY KEY (UserId),
     CONSTRAINT UQ_Users_Username UNIQUE (Username),
     CONSTRAINT UQ_Users_Email    UNIQUE (Email),
-    CONSTRAINT CK_Users_Role     CHECK (Role IN (N'User', N'Admin'))
+    CONSTRAINT CK_Users_Role     CHECK (Role IN (N'User', N'Admin')),
+    CONSTRAINT CK_Users_FailedLoginCount_NonNegative CHECK (FailedLoginCount >= 0)
 );
 GO
 
@@ -457,6 +461,16 @@ BEGIN TRY
     IF COL_LENGTH('dbo.Users', 'PasswordChangedAt') IS NULL
         ALTER TABLE dbo.Users
         ADD PasswordChangedAt DATETIME2(0) NULL;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'CK_Users_FailedLoginCount_NonNegative'
+    )
+        ALTER TABLE dbo.Users WITH CHECK
+        ADD CONSTRAINT CK_Users_FailedLoginCount_NonNegative
+            CHECK (FailedLoginCount >= 0);
 
     -- Khoi phuc mat khau 123456 cho 4 tai khoan
     UPDATE dbo.Users
